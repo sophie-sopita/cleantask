@@ -1,36 +1,159 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🧹 CleanTask
 
-## Getting Started
+Una aplicación moderna de gestión de tareas construida con las últimas tecnologías web para demostrar las mejores prácticas de desarrollo con Next.js 15, React Server Components y TypeScript.
 
-First, run the development server:
+## 🚀 Tecnologías Implementadas
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+### Frontend
+- **Next.js 15**: Framework React con App Router y soporte completo para React Server Components
+- **React 19**: Biblioteca UI con Server Components para renderizado optimizado
+- **TypeScript**: Lenguaje tipado estricto para desarrollo robusto y mantenible
+- **Tailwind CSS**: Framework de utilidades CSS para diseño rápido y responsivo
+
+### Herramientas de Desarrollo
+- **PNPM**: Gestor de paquetes JavaScript eficiente y rápido
+- **ESLint**: Linter configurado para mantener calidad y consistencia del código
+- **Turbopack**: Bundler ultra-rápido para desarrollo (incluido en Next.js)
+- **Node.js**: Plataforma de ejecución para el servidor de Next.js
+
+## 📁 Estructura del Proyecto
+
+```
+cleantask/
+├── src/
+│   └── app/                    # App Router de Next.js
+│       ├── components/         # Componentes reutilizables
+│       │   ├── Navigation.tsx  # Navegación (Client Component)
+│       │   ├── ClientCounter.tsx # Ejemplo de Client Component
+│       │   └── ServerInfo.tsx  # Ejemplo de Server Component
+│       ├── tasks/              # Ruta /tasks
+│       │   └── page.tsx        # Página de tareas
+│       ├── about/              # Ruta /about
+│       │   └── page.tsx        # Página acerca de
+│       ├── layout.tsx          # Layout raíz con metadata
+│       ├── page.tsx            # Página de inicio
+│       └── globals.css         # Estilos globales con Tailwind
+├── package.json                # Configuración del proyecto con PNPM
+├── pnpm-lock.yaml             # Lockfile de PNPM
+├── tailwind.config.ts         # Configuración de Tailwind CSS
+├── tsconfig.json              # Configuración de TypeScript
+├── eslint.config.mjs          # Configuración optimizada de ESLint
+└── next.config.ts             # Configuración de Next.js con Turbopack
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🛠️ Metodología del Proyecto
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 1. Estructura Basada en Carpetas para Rutas
+El App Router de Next.js utiliza la carpeta `app/` para definir rutas y subrutas mediante la creación de carpetas con archivos específicos (`page.tsx`). Esto promueve una organización clara y declarativa:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `/` → `app/page.tsx`
+- `/tasks` → `app/tasks/page.tsx`
+- `/about` → `app/about/page.tsx`
 
-## Learn More
+### 2. React Server Components por Defecto
+Las páginas y componentes creados en la carpeta `app/` son Server Components automáticamente, optimizando el renderizado del lado servidor:
 
-To learn more about Next.js, take a look at the following resources:
+- **Server Components**: Se ejecutan en el servidor, mejoran SEO y rendimiento inicial
+- **Client Components**: Requieren `'use client'` para interactividad del lado cliente
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 3. Uso de TypeScript desde el Inicio
+TypeScript está configurado para definir aplicaciones robustas:
+- Tipado estricto para prevenir errores
+- Mejor experiencia de desarrollo con autocompletado
+- Interfaces y tipos personalizados para mayor seguridad
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 4. Incorporación de Tailwind CSS
+Aprovecha la integración automática de Tailwind:
+- Clases CSS aplicadas directamente en componentes
+- Diseño responsivo con utilidades móvil-first
+- Configuración optimizada para Next.js
 
-## Deploy on Vercel
+### 5. Desarrollo Incremental
+El proceso sigue una metodología paso a paso:
+1. Configuración inicial con Next.js y PNPM
+2. Configuración de ESLint y Tailwind CSS
+3. Creación de páginas simples con Server Components
+4. Adición progresiva de rutas y componentes
+5. Implementación de Client Components cuando se requiere interactividad
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🏃‍♂️ Comandos de Desarrollo
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Instalación
+```bash
+# Instalar dependencias con PNPM
+pnpm install
+```
+
+### Desarrollo
+```bash
+# Iniciar servidor de desarrollo con Turbopack
+pnpm dev
+```
+
+### Construcción
+```bash
+# Construir para producción
+pnpm build
+
+# Iniciar servidor de producción
+pnpm start
+```
+
+### Linting
+```bash
+# Ejecutar ESLint
+pnpm lint
+```
+
+## 🔄 Server vs Client Components
+
+### Server Components
+- ✅ Se ejecutan en el servidor
+- ✅ Mejor SEO y rendimiento inicial
+- ✅ Acceso directo a bases de datos y APIs
+- ✅ Menor bundle size del cliente
+- ❌ No pueden usar hooks de React
+- ❌ No tienen acceso a APIs del navegador
+
+### Client Components
+- ✅ Se ejecutan en el navegador
+- ✅ Permiten interactividad completa
+- ✅ Pueden usar hooks y estado de React
+- ✅ Acceso a APIs del navegador
+- ❌ Requieren directiva `'use client'`
+- ❌ Aumentan el bundle size del cliente
+
+## 🌟 Características Implementadas
+
+- **Navegación**: Sistema de navegación con indicador de página activa
+- **Páginas de ejemplo**: Inicio, Tareas y Acerca de
+- **Componentes demostrativos**: Ejemplos de Server y Client Components
+- **Diseño responsivo**: Interfaz adaptable a diferentes dispositivos
+- **Metadata optimizada**: SEO mejorado con metadata dinámica
+- **Tipado completo**: TypeScript en toda la aplicación
+
+## 📚 Recursos y Referencias
+
+- [Next.js Documentation](https://nextjs.org/docs)
+- [React Server Components](https://react.dev/reference/rsc/server-components)
+- [TypeScript Handbook](https://www.typescriptlang.org/docs/)
+- [Tailwind CSS Documentation](https://tailwindcss.com/docs)
+- [PNPM Documentation](https://pnpm.io/motivation)
+
+## 🤝 Contribución
+
+Este proyecto sirve como ejemplo de implementación de tecnologías modernas. Para contribuir:
+
+1. Fork el repositorio
+2. Crea una rama para tu feature (`git checkout -b feature/nueva-funcionalidad`)
+3. Commit tus cambios (`git commit -am 'Añadir nueva funcionalidad'`)
+4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
+5. Crea un Pull Request
+
+## 📄 Licencia
+
+Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
+
+---
+
+**CleanTask** - Demostrando las mejores prácticas con Next.js 15, React Server Components y TypeScript 🚀

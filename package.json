@@ -1,5 +1,5 @@
 {
-  "name": "my-nextjs-app",
+  "name": "cleantask",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint"
   },
+  "packageManager": "pnpm@10.18.3",
   "dependencies": {
     "react": "19.1.0",
     "react-dom": "19.1.0",
