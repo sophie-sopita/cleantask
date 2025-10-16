@@ -1,6 +1,5 @@
 import { Metadata } from 'next'
-import ClientCounter from '../components/ClientCounter'
-import ServerInfo from '../components/ServerInfo'
+import { ClientCounter, ServerInfo } from '@/shared/ui'
 
 export const metadata: Metadata = {
   title: 'Acerca de CleanTask',
