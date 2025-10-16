@@ -1,0 +1,1 @@
+export type { User, UserPreferences, CreateUserDto, UpdateUserDto } from './model';
