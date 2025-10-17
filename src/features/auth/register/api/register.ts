@@ -1,6 +1,6 @@
-import { CreateUserPayload } from '@/entities/user/model'
+import { RegisterUserPayload } from '@/entities/user/model'
 
-export interface RegisterRequest extends CreateUserPayload {
+export interface RegisterRequest extends RegisterUserPayload {
   confirmPassword: string
 }
 
@@ -59,7 +59,8 @@ export function useRegister() {
     } catch (error) {
       return { 
         success: false, 
-        error: error instanceof Error ? error.message : 'Error desconocido' 
+        error: error instanceof Error ? error.message : 'Error desconocido',
+        data: undefined
       }
     }
   }

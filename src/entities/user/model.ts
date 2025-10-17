@@ -15,6 +15,13 @@ export type User = {
 export type CreateUserPayload = Omit<User, 'id'>
 
 /**
+ * User registration payload (includes password)
+ */
+export type RegisterUserPayload = CreateUserPayload & {
+  password: string
+}
+
+/**
  * User update payload (partial fields)
  */
 export type UpdateUserPayload = Partial<Omit<User, 'id'>>

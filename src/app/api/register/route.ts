@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { CreateUserPayload } from '@/entities/user/model'
+import { RegisterUserPayload } from '@/entities/user/model'
 
 // Mock database - en producción esto sería una base de datos real
 const users: Array<{ id: string; name: string; email: string; password: string; createdAt: string }> = []
 
 export async function POST(request: NextRequest) {
   try {
-    const body: CreateUserPayload & { confirmPassword: string } = await request.json()
+    const body: RegisterUserPayload & { confirmPassword: string } = await request.json()
     
     // Validación básica
     if (!body.name || !body.email || !body.password || !body.confirmPassword) {

@@ -12,6 +12,7 @@ interface RegisterFormData {
   email: string
   password: string
   confirmPassword: string
+  role: 'user' // Default role for registration
 }
 
 export function RegisterForm() {
@@ -34,15 +35,21 @@ export function RegisterForm() {
     setApiError(null)
     
     try {
-      const result = await registerUser(data)
+      // Add default role for registration
+      const registrationData = {
+        ...data,
+        role: 'user' as const
+      }
+      
+      const result = await registerUser(registrationData)
       
       if (result.success) {
         // Mostrar mensaje de éxito
-        alert(`¡Cuenta creada exitosamente! Bienvenido ${result.data.user.name}`)
+        alert(`¡Cuenta creada exitosamente! Bienvenido ${result.data?.user?.name || 'Usuario'}`)
         // Redirigir al login
         router.push('/login')
       } else {
-        setApiError(result.error)
+        setApiError(result.error || 'Error desconocido')
       }
     } catch (error) {
       setApiError('Error de conexión. Inténtalo de nuevo.')
