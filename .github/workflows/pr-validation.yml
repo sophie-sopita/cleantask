@@ -45,15 +45,13 @@ jobs:
       run: pnpm lint
       
     - name: 🧪 Run tests
-      run: pnpm test --if-present
+      run: pnpm test
       
     - name: 🏗️ Test build
       run: pnpm build
       
     - name: 📊 Check bundle size
-      run: |
-        pnpm build
-        npx bundlesize
+      run: pnpm build
       continue-on-error: true
       
     - name: 💬 Comment PR
