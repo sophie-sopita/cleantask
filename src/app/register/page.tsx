@@ -1,10 +1,12 @@
+'use client'
+
 import { Metadata } from 'next'
 import { RegisterForm } from '@/features/auth/register/ui'
 
-export const metadata: Metadata = {
-  title: 'Registro - CleanTask',
-  description: 'Crea tu cuenta en CleanTask para gestionar tus tareas de manera eficiente.',
-}
+// export const metadata: Metadata = {
+//   title: 'Registro - CleanTask',
+//   description: 'Crea tu cuenta en CleanTask para gestionar tus tareas de manera eficiente.',
+// }
 
 export default function RegisterPage() {
   const handleRegister = async (userData: any) => {
