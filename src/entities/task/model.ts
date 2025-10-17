@@ -7,6 +7,7 @@ export type Task = {
   title: string
   description?: string
   dueDate?: string
+  priority: 'low' | 'medium' | 'high'
   status: 'pending' | 'done'
   userId: string
 }
@@ -20,6 +21,15 @@ export type CreateTaskPayload = Omit<Task, 'id'>
  * Task update payload (partial fields)
  */
 export type UpdateTaskPayload = Partial<Omit<Task, 'id' | 'userId'>>
+
+/**
+ * Task priority options
+ */
+export const TaskPriority = {
+  LOW: 'low' as const,
+  MEDIUM: 'medium' as const,
+  HIGH: 'high' as const,
+} as const
 
 /**
  * Task status options
