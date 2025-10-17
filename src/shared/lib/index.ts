@@ -1,1 +1,1 @@
-export { cn, formatDate, formatDateTime, generateId, debounce } from './utils';
+export { cn, formatDate, capitalize, debounce } from './utils';
