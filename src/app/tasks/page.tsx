@@ -1,94 +1,235 @@
+'use client'
+
+import React, { useState } from 'react'
 import { Metadata } from 'next'
+import { TaskForm } from '@/features/tasks/create'
+import { TaskList } from '@/features/tasks/list'
+import { useTasks } from '@/features/tasks/api'
 
-export const metadata: Metadata = {
-  title: 'Tareas - CleanTask',
-  description: 'Gestiona tus tareas de manera eficiente con CleanTask.',
-}
+// Metadata se maneja en layout.tsx para client components
+// export const metadata: Metadata = {
+//   title: 'Tareas - CleanTask',
+//   description: 'Gestiona tus tareas de manera eficiente con CleanTask.',
+// }
 
-// Este es un React Server Component por defecto
+/**
+ * Página principal de gestión de tareas
+ * Integra TaskForm y TaskList con el hook useTasks
+ */
 export default function TasksPage() {
-  // Simulamos algunas tareas para demostrar la funcionalidad
-  const tasks = [
-    { id: 1, title: 'Configurar proyecto Next.js', completed: true, priority: 'alta' },
-    { id: 2, title: 'Implementar App Router', completed: true, priority: 'alta' },
-    { id: 3, title: 'Crear componentes de ejemplo', completed: false, priority: 'media' },
-    { id: 4, title: 'Añadir funcionalidad de tareas', completed: false, priority: 'alta' },
-    { id: 5, title: 'Implementar autenticación', completed: false, priority: 'baja' },
-  ]
+  // Estado para controlar la visibilidad del formulario
+  const [showForm, setShowForm] = useState(false)
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'alta': return 'bg-red-100 text-red-800'
-      case 'media': return 'bg-yellow-100 text-yellow-800'
-      case 'baja': return 'bg-green-100 text-green-800'
-      default: return 'bg-gray-100 text-gray-800'
-    }
+  // Hook para gestión de tareas
+  const {
+    tasks,
+    loading,
+    error,
+    totalTasks,
+    pendingTasks,
+    completedTasks,
+    refreshTasks,
+    clearError
+  } = useTasks({
+    userId: 'user-1', // Mock user ID
+    autoFetch: true
+  })
+
+  /**
+   * Maneja el éxito en la creación de una tarea
+   */
+  const handleTaskCreated = async (taskId: string) => {
+    console.log('Tarea creada exitosamente:', taskId)
+    
+    // Ocultar formulario
+    setShowForm(false)
+    
+    // Refrescar lista de tareas
+    await refreshTasks()
+  }
+
+  /**
+   * Maneja la cancelación del formulario
+   */
+  const handleFormCancel = () => {
+    setShowForm(false)
+  }
+
+  /**
+   * Maneja la edición de una tarea
+   */
+  const handleEditTask = (taskId: string) => {
+    console.log('Editar tarea:', taskId)
+    // TODO: Implementar en HU-006
+  }
+
+  /**
+   * Maneja la eliminación de una tarea
+   */
+  const handleDeleteTask = (taskId: string) => {
+    console.log('Eliminar tarea:', taskId)
+    // TODO: Implementar en HU-006
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-100 py-12 px-4">
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <div className="flex justify-between items-center mb-8">
-            <h1 className="text-4xl font-bold text-gray-900">
-              Mis Tareas
-            </h1>
-            <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
-              + Nueva Tarea
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-6">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Gestión de Tareas
+              </h1>
+              <p className="mt-1 text-sm text-gray-600">
+                Organiza y gestiona tus tareas de manera eficiente
+              </p>
+            </div>
+            
+            <button
+              onClick={() => setShowForm(!showForm)}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              {showForm ? 'Cancelar' : 'Nueva Tarea'}
             </button>
           </div>
+        </div>
+      </div>
 
-          <div className="space-y-4">
-            {tasks.map((task) => (
-              <div
-                key={task.id}
-                className={`p-4 rounded-lg border-2 transition-all hover:shadow-md ${
-                  task.completed 
-                    ? 'bg-gray-50 border-gray-200 opacity-75' 
-                    : 'bg-white border-gray-200 hover:border-blue-300'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <input
-                      type="checkbox"
-                      checked={task.completed}
-                      readOnly
-                      className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
-                    />
-                    <span
-                      className={`text-lg ${
-                        task.completed 
-                          ? 'line-through text-gray-500' 
-                          : 'text-gray-900'
-                      }`}
-                    >
-                      {task.title}
+      {/* Contenido principal */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Estadísticas */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="p-5">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-sm font-medium">
+                      {totalTasks}
                     </span>
                   </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <span
-                      className={`px-3 py-1 rounded-full text-sm font-medium ${getPriorityColor(task.priority)}`}
-                    >
-                      {task.priority}
+                </div>
+                <div className="ml-5 w-0 flex-1">
+                  <dl>
+                    <dt className="text-sm font-medium text-gray-500 truncate">
+                      Total de Tareas
+                    </dt>
+                    <dd className="text-lg font-medium text-gray-900">
+                      {totalTasks}
+                    </dd>
+                  </dl>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="p-5">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-sm font-medium">
+                      {pendingTasks}
                     </span>
-                    <button className="text-gray-400 hover:text-gray-600 p-1">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                      </svg>
+                  </div>
+                </div>
+                <div className="ml-5 w-0 flex-1">
+                  <dl>
+                    <dt className="text-sm font-medium text-gray-500 truncate">
+                      Pendientes
+                    </dt>
+                    <dd className="text-lg font-medium text-gray-900">
+                      {pendingTasks}
+                    </dd>
+                  </dl>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="p-5">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-sm font-medium">
+                      {completedTasks}
+                    </span>
+                  </div>
+                </div>
+                <div className="ml-5 w-0 flex-1">
+                  <dl>
+                    <dt className="text-sm font-medium text-gray-500 truncate">
+                      Completadas
+                    </dt>
+                    <dd className="text-lg font-medium text-gray-900">
+                      {completedTasks}
+                    </dd>
+                  </dl>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Mostrar error global si existe */}
+        {error && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-md p-4">
+            <div className="flex">
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">
+                  Error al cargar las tareas
+                </h3>
+                <div className="mt-2 text-sm text-red-700">
+                  <p>{error}</p>
+                </div>
+                <div className="mt-4">
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={refreshTasks}
+                      className="bg-red-100 px-2 py-1 text-sm text-red-800 rounded hover:bg-red-200"
+                    >
+                      Reintentar
+                    </button>
+                    <button
+                      onClick={clearError}
+                      className="bg-red-100 px-2 py-1 text-sm text-red-800 rounded hover:bg-red-200"
+                    >
+                      Cerrar
                     </button>
                   </div>
                 </div>
               </div>
-            ))}
+            </div>
           </div>
+        )}
 
-          <div className="mt-8 p-4 bg-blue-50 rounded-lg">
-            <p className="text-blue-800 text-sm">
-              <strong>Nota:</strong> Esta página utiliza React Server Components para renderizado optimizado del lado del servidor.
-              Los datos se procesan en el servidor antes de enviar el HTML al cliente.
-            </p>
+        {/* Formulario de creación (condicional) */}
+        {showForm && (
+          <div className="mb-8">
+            <TaskForm
+              onSuccess={handleTaskCreated}
+              onCancel={handleFormCancel}
+              className="max-w-2xl mx-auto"
+            />
+          </div>
+        )}
+
+        {/* Lista de tareas */}
+        <div className="bg-white shadow rounded-lg">
+          <div className="px-4 py-5 sm:p-6">
+            <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+              Mis Tareas
+            </h3>
+            
+            <TaskList
+              tasks={tasks}
+              loading={loading}
+              onEdit={handleEditTask}
+              onDelete={handleDeleteTask}
+              emptyMessage="No tienes tareas creadas. ¡Crea tu primera tarea!"
+            />
           </div>
         </div>
       </div>

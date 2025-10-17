@@ -3,43 +3,46 @@
 import React, { useState } from 'react'
 import { Button, Input } from '@/shared/ui'
 import { CreateTaskPayload, TaskPriority } from '@/entities/task/model'
+import { useCreateTask } from '@/features/tasks/api'
 
-/**
- * Datos del formulario de creación de tarea
- */
+export interface TaskFormProps {
+  onSubmit?: (task: CreateTaskPayload) => void
+  onSuccess?: (taskId: string) => void
+  onCancel?: () => void
+  className?: string
+}
+
 export interface TaskFormData {
   title: string
   description: string
   dueDate: string
-  priority: 'low' | 'medium' | 'high'
+  priority: TaskPriority
 }
 
-/**
- * Props del componente TaskForm
- */
-export interface TaskFormProps {
-  onSubmit: (data: CreateTaskPayload) => void
-  isLoading?: boolean
-  initialData?: Partial<TaskFormData>
+export interface TaskFormErrors {
+  title?: string
+  description?: string
+  dueDate?: string
+  priority?: string
 }
 
-/**
- * Componente de formulario para crear tareas
- * Incluye validación del lado del cliente y manejo de estados
- */
-export const TaskForm: React.FC<TaskFormProps> = ({
-  onSubmit,
-  isLoading = false,
-  initialData = {}
-}) => {
+export function TaskForm({ onSubmit, onSuccess, onCancel, className = '' }: TaskFormProps) {
+  // Hook para crear tareas
+  const { createTask, loading: apiLoading, error: apiError, clearError } = useCreateTask()
+
+  // Estado del formulario
   const [formData, setFormData] = useState<TaskFormData>({
-    title: initialData.title || '',
-    description: initialData.description || '',
-    dueDate: initialData.dueDate || '',
-    priority: initialData.priority || 'medium'
+    title: '',
+    description: '',
+    dueDate: '',
+    priority: TaskPriority.MEDIUM
   })
 
-  const [errors, setErrors] = useState<Partial<TaskFormData>>({})
+  // Estado de errores
+  const [errors, setErrors] = useState<TaskFormErrors>({})
+
+  // Estado de carga (combinando validación local y API)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   /**
    * Valida los datos del formulario
@@ -95,24 +98,55 @@ export const TaskForm: React.FC<TaskFormProps> = ({
   /**
    * Maneja el envío del formulario
    */
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
+    
+    // Limpiar errores previos
+    setErrors({})
+    clearError()
+    
+    // Validar formulario
     if (!validateForm()) {
       return
     }
 
-    // Preparar datos para envío
-    const taskData: CreateTaskPayload = {
-      title: formData.title.trim(),
-      description: formData.description.trim() || undefined,
-      dueDate: formData.dueDate || undefined,
-      priority: formData.priority,
-      status: 'pending',
-      userId: 'current-user' // TODO: Obtener del contexto de autenticación
-    }
+    setIsSubmitting(true)
 
-    onSubmit(taskData)
+    try {
+      // Preparar datos para la API
+      const taskPayload: CreateTaskPayload = {
+        title: formData.title.trim(),
+        description: formData.description.trim() || undefined,
+        dueDate: formData.dueDate || undefined,
+        priority: formData.priority,
+        status: 'pending',
+        userId: 'current-user' // TODO: Obtener del contexto de autenticación
+      }
+
+      // Llamar al callback onSubmit si existe (para casos especiales)
+      if (onSubmit) {
+        onSubmit(taskPayload)
+      }
+
+      // Crear tarea usando la API
+      const createdTask = await createTask(taskPayload)
+      
+      if (createdTask) {
+        // Resetear formulario en caso de éxito
+        handleReset()
+        
+        // Llamar callback de éxito si existe
+        if (onSuccess) {
+          onSuccess(createdTask.id)
+        }
+      }
+      // Si hay error, se mostrará automáticamente desde el hook
+      
+    } catch (error) {
+      console.error('Error inesperado al crear tarea:', error)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   /**
@@ -128,28 +162,47 @@ export const TaskForm: React.FC<TaskFormProps> = ({
     setErrors({})
   }
 
-  return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">
-        Crear Nueva Tarea
-      </h2>
+  // Determinar si el formulario está cargando
+  const isLoading = isSubmitting || apiLoading
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+  return (
+    <div className={`bg-white rounded-lg shadow-md p-6 ${className}`}>
+      <h2 className="text-2xl font-bold text-gray-800 mb-6">Crear Nueva Tarea</h2>
+      
+      {/* Mostrar error de API si existe */}
+      {apiError && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
+          <p className="text-red-700 text-sm">{apiError}</p>
+          <button
+            type="button"
+            onClick={clearError}
+            className="mt-2 text-red-600 hover:text-red-800 text-sm underline"
+          >
+            Cerrar
+          </button>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-4">
         {/* Campo Título */}
         <div>
-          <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
             Título *
           </label>
           <Input
             id="title"
+            name="title"
             type="text"
             value={formData.title}
-            onChange={(e) => handleInputChange('title', e.target.value)}
+            onChange={handleInputChange}
             placeholder="Ingresa el título de la tarea"
-            error={errors.title}
+            className={`w-full ${errors.title ? 'border-red-500' : ''}`}
             disabled={isLoading}
-            maxLength={100}
+            required
           />
+          {errors.title && (
+            <p className="mt-1 text-sm text-red-600">{errors.title}</p>
+          )}
         </div>
 
         {/* Campo Descripción */}
@@ -224,6 +277,18 @@ export const TaskForm: React.FC<TaskFormProps> = ({
           >
             {isLoading ? 'Creando...' : 'Crear Tarea'}
           </Button>
+          
+          {onCancel && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onCancel}
+              disabled={isLoading}
+              className="flex-1 sm:flex-none"
+            >
+              Cancelar
+            </Button>
+          )}
           
           <Button
             type="button"
