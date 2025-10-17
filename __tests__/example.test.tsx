@@ -3,9 +3,11 @@ import HomePage from '@/app/page'
 
 // Mock Next.js Link component
 jest.mock('next/link', () => {
-  return ({ children, href }: { children: React.ReactNode; href: string }) => {
+  const MockedLink = ({ children, href }: { children: React.ReactNode; href: string }) => {
     return <a href={href}>{children}</a>
   }
+  MockedLink.displayName = 'MockedLink'
+  return MockedLink
 })
 
 describe('HomePage', () => {
@@ -41,9 +43,9 @@ describe('HomePage', () => {
   it('shows technology features', () => {
     render(<HomePage />)
     
-    expect(screen.getByText(/next\.js 15/i)).toBeInTheDocument()
-    expect(screen.getByText(/react server components/i)).toBeInTheDocument()
-    expect(screen.getByText(/typescript/i)).toBeInTheDocument()
-    expect(screen.getByText(/tailwind css/i)).toBeInTheDocument()
+    expect(screen.getByText(/next\.js 15 con app router/i)).toBeInTheDocument()
+    expect(screen.getByText(/react 19 con server components/i)).toBeInTheDocument()
+    expect(screen.getByText(/typescript para tipado estricto/i)).toBeInTheDocument()
+    expect(screen.getByText(/tailwind css para estilos/i)).toBeInTheDocument()
   })
 })
