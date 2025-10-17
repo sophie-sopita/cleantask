@@ -2,8 +2,10 @@
 
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/shared/ui/Button'
 import { Input } from '@/shared/ui/Input'
+import { useRegister } from '../api/register'
 
 interface RegisterFormData {
   name: string
@@ -14,6 +16,10 @@ interface RegisterFormData {
 
 export function RegisterForm() {
   const [isLoading, setIsLoading] = useState(false)
+  const [apiError, setApiError] = useState<string | null>(null)
+  const router = useRouter()
+  const { register: registerUser } = useRegister()
+  
   const {
     register,
     handleSubmit,
@@ -25,14 +31,21 @@ export function RegisterForm() {
 
   const onSubmit = async (data: RegisterFormData) => {
     setIsLoading(true)
+    setApiError(null)
+    
     try {
-      // TODO: Implementar integración con API
-      console.log('Datos de registro:', data)
-      // Simular delay de API
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      alert('¡Cuenta creada exitosamente! (Mock)')
-    } catch {
-      alert('Error al crear la cuenta')
+      const result = await registerUser(data)
+      
+      if (result.success) {
+        // Mostrar mensaje de éxito
+        alert(`¡Cuenta creada exitosamente! Bienvenido ${result.data.user.name}`)
+        // Redirigir al login
+        router.push('/login')
+      } else {
+        setApiError(result.error)
+      }
+    } catch (error) {
+      setApiError('Error de conexión. Inténtalo de nuevo.')
     } finally {
       setIsLoading(false)
     }
@@ -50,6 +63,12 @@ export function RegisterForm() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {apiError && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+            {apiError}
+          </div>
+        )}
+        
         <Input
           label="Nombre completo"
           type="text"
