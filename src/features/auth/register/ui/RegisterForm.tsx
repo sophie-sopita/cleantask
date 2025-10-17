@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { Button } from '@/shared/ui/Button'
+import { Input } from '@/shared/ui/Input'
 
 interface RegisterFormData {
   name: string
@@ -48,103 +50,74 @@ export function RegisterForm() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-            Nombre completo
-          </label>
-          <input
-            id="name"
-            type="text"
-            {...register('name', {
-              required: 'El nombre es obligatorio',
-              minLength: {
-                value: 2,
-                message: 'El nombre debe tener al menos 2 caracteres'
-              }
-            })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="Tu nombre completo"
-          />
-          {errors.name && (
-            <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
-          )}
-        </div>
+        <Input
+          label="Nombre completo"
+          type="text"
+          placeholder="Tu nombre completo"
+          error={errors.name?.message}
+          {...register('name', {
+            required: 'El nombre es obligatorio',
+            minLength: {
+              value: 2,
+              message: 'El nombre debe tener al menos 2 caracteres'
+            }
+          })}
+        />
 
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-            Correo electrónico
-          </label>
-          <input
-            id="email"
-            type="email"
-            {...register('email', {
-              required: 'El correo es obligatorio',
-              pattern: {
-                value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                message: 'Correo electrónico inválido'
-              }
-            })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="tu@email.com"
-          />
-          {errors.email && (
-            <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
-          )}
-        </div>
+        <Input
+          label="Correo electrónico"
+          type="email"
+          placeholder="tu@email.com"
+          error={errors.email?.message}
+          {...register('email', {
+            required: 'El correo es obligatorio',
+            pattern: {
+              value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+              message: 'Correo electrónico inválido'
+            }
+          })}
+        />
 
-        <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-            Contraseña
-          </label>
-          <input
-            id="password"
-            type="password"
-            {...register('password', {
-              required: 'La contraseña es obligatoria',
-              minLength: {
-                value: 8,
-                message: 'La contraseña debe tener al menos 8 caracteres'
-              },
-              pattern: {
-                value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-                message: 'La contraseña debe contener al menos una mayúscula, una minúscula y un número'
-              }
-            })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="Mínimo 8 caracteres"
-          />
-          {errors.password && (
-            <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
-          )}
-        </div>
+        <Input
+          label="Contraseña"
+          type="password"
+          placeholder="Mínimo 8 caracteres"
+          error={errors.password?.message}
+          helperText="Debe contener al menos una mayúscula, una minúscula y un número"
+          {...register('password', {
+            required: 'La contraseña es obligatoria',
+            minLength: {
+              value: 8,
+              message: 'La contraseña debe tener al menos 8 caracteres'
+            },
+            pattern: {
+              value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+              message: 'La contraseña debe contener al menos una mayúscula, una minúscula y un número'
+            }
+          })}
+        />
 
-        <div>
-          <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-            Confirmar contraseña
-          </label>
-          <input
-            id="confirmPassword"
-            type="password"
-            {...register('confirmPassword', {
-              required: 'Confirma tu contraseña',
-              validate: value =>
-                value === password || 'Las contraseñas no coinciden'
-            })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="Repite tu contraseña"
-          />
-          {errors.confirmPassword && (
-            <p className="mt-1 text-sm text-red-600">{errors.confirmPassword.message}</p>
-          )}
-        </div>
+        <Input
+          label="Confirmar contraseña"
+          type="password"
+          placeholder="Repite tu contraseña"
+          error={errors.confirmPassword?.message}
+          {...register('confirmPassword', {
+            required: 'Confirma tu contraseña',
+            validate: value =>
+              value === password || 'Las contraseñas no coinciden'
+          })}
+        />
 
-        <button
+        <Button
           type="submit"
-          disabled={isLoading}
-          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2 px-4 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          variant="primary"
+          size="lg"
+          loading={isLoading}
+          className="w-full"
         >
-          {isLoading ? 'Creando cuenta...' : 'Crear cuenta'}
-        </button>
+          Crear cuenta
+        </Button>
       </form>
 
       <div className="mt-6 text-center">
