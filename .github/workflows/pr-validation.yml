@@ -1,0 +1,69 @@
+name: PR Validation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  validate-pr:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🔍 Validate PR title
+      uses: amannn/action-semantic-pull-request@v5
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        types: |
+          feat
+          fix
+          docs
+          style
+          refactor
+          perf
+          test
+          chore
+        requireScope: false
+        
+    - name: 📦 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        
+    - name: 📦 Setup PNPM
+      uses: pnpm/action-setup@v2
+      with:
+        version: latest
+        
+    - name: 📥 Install dependencies
+      run: pnpm install --frozen-lockfile
+      
+    - name: 🔍 Run linting
+      run: pnpm lint
+      
+    - name: 🧪 Run tests
+      run: pnpm test --if-present
+      
+    - name: 🏗️ Test build
+      run: pnpm build
+      
+    - name: 📊 Check bundle size
+      run: |
+        pnpm build
+        npx bundlesize
+      continue-on-error: true
+      
+    - name: 💬 Comment PR
+      uses: actions/github-script@v6
+      if: github.event_name == 'pull_request'
+      with:
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: '✅ PR validation completed successfully! 🎉'
+          })
