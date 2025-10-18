@@ -9,6 +9,7 @@ export default function Navigation() {
   const navItems = [
     { href: '/', label: 'Inicio', icon: '🏠' },
     { href: '/tasks', label: 'Tareas', icon: '✅' },
+    { href: '/calendar', label: 'Calendario', icon: '📅' },
     { href: '/about', label: 'Acerca de', icon: 'ℹ️' },
   ]
 
