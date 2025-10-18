@@ -28,8 +28,8 @@ export default function ClientCounter() {
         </button>
       </div>
       <p className="text-yellow-700 text-sm mt-4">
-        <strong>Nota:</strong> Este componente usa <code className="bg-yellow-100 px-1 rounded">'use client'</code> 
-        para habilitar interactividad del lado del cliente. El estado se mantiene en el navegador.
+        Esto es un <strong>Client Component</strong> que se ejecuta en el navegador.
+        Puede usar hooks como <code>useState</code> y manejar eventos del usuario.
       </p>
     </div>
   )

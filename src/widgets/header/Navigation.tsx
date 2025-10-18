@@ -9,6 +9,8 @@ export default function Navigation() {
   const navItems = [
     { href: '/', label: 'Inicio', icon: '🏠' },
     { href: '/tasks', label: 'Tareas', icon: '✅' },
+    { href: '/calendar', label: 'Calendario', icon: '📅' },
+    { href: '/dashboard', label: 'Dashboard', icon: '📊' },
     { href: '/about', label: 'Acerca de', icon: 'ℹ️' },
   ]
 
@@ -36,6 +38,16 @@ export default function Navigation() {
                 <span>{item.label}</span>
               </Link>
             ))}
+            <Link 
+              href="/register" 
+              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                pathname === '/register' 
+                  ? 'bg-blue-700 text-white' 
+                  : 'text-blue-100 hover:bg-blue-700 hover:text-white'
+              }`}
+            >
+              Registro
+            </Link>
           </div>
         </div>
       </div>

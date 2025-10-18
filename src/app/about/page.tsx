@@ -1,6 +1,5 @@
 import { Metadata } from 'next'
-import ClientCounter from '../components/ClientCounter'
-import ServerInfo from '../components/ServerInfo'
+import { ClientCounter, ServerInfo } from '@/shared/ui'
 
 export const metadata: Metadata = {
   title: 'Acerca de CleanTask',
@@ -19,6 +18,11 @@ export default function AboutPage() {
           <p className="text-lg text-gray-600 mb-8">
             CleanTask es una aplicación moderna de gestión de tareas construida con las últimas tecnologías web.
             Este proyecto demuestra el uso de Next.js 15, React Server Components, TypeScript y más.
+          </p>
+          <p className="text-lg text-gray-600 mb-8">
+            Nuestra misión es hacer que la gestión de tareas sea simple, intuitiva y efectiva. 
+            Creemos que las mejores herramientas son aquellas que se adaptan a tu flujo de trabajo, 
+            no al revés.
           </p>
 
           <div className="grid md:grid-cols-2 gap-8 mb-8">
@@ -141,7 +145,7 @@ export default function AboutPage() {
                 <li>• Se ejecutan en el navegador</li>
                 <li>• Permiten interactividad</li>
                 <li>• Pueden usar hooks y estado</li>
-                <li>• Requieren directiva 'use client'</li>
+                <li>• Requieren directiva &apos;use client&apos;</li>
                 <li>• Ideales para UI interactiva</li>
               </ul>
             </div>
