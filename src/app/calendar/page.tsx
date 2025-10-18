@@ -11,7 +11,7 @@ type Value = ValuePiece | [ValuePiece, ValuePiece]
 
 export default function CalendarPage() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
-  const { data: tasks = [], isLoading } = useTasks()
+  const { tasks = [], loading } = useTasks()
 
   // Filtrar tareas por fecha seleccionada
   const getTasksForDate = (date: Date) => {
@@ -57,7 +57,7 @@ export default function CalendarPage() {
     return null
   }
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-6xl mx-auto px-4">
@@ -138,7 +138,7 @@ export default function CalendarPage() {
                   <div
                     key={task.id}
                     className={`p-4 rounded-lg border-l-4 ${
-                      task.completed
+                      task.status === 'done'
                         ? 'bg-green-50 border-green-400'
                         : task.priority === 'high'
                         ? 'bg-red-50 border-red-400'
@@ -150,7 +150,7 @@ export default function CalendarPage() {
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <h3 className={`font-medium ${
-                          task.completed ? 'line-through text-gray-500' : 'text-gray-900'
+                          task.status === 'done' ? 'line-through text-gray-500' : 'text-gray-900'
                         }`}>
                           {task.title}
                         </h3>
@@ -170,17 +170,12 @@ export default function CalendarPage() {
                             {task.priority === 'high' ? 'Alta' : 
                              task.priority === 'medium' ? 'Media' : 'Baja'}
                           </span>
-                          {task.category && (
-                            <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
-                              {task.category}
-                            </span>
-                          )}
                         </div>
                       </div>
                       <div className={`ml-4 ${
-                        task.completed ? 'text-green-600' : 'text-gray-400'
+                        task.status === 'done' ? 'text-green-600' : 'text-gray-400'
                       }`}>
-                        {task.completed ? '✅' : '⏳'}
+                        {task.status === 'done' ? '✅' : '⏳'}
                       </div>
                     </div>
                   </div>
@@ -200,13 +195,13 @@ export default function CalendarPage() {
                   </div>
                   <div>
                     <div className="text-2xl font-bold text-green-600">
-                      {tasksForSelectedDate.filter(t => t.completed).length}
+                      {tasksForSelectedDate.filter((t: Task) => t.status === 'done').length}
                     </div>
                     <div className="text-xs text-gray-500">Completadas</div>
                   </div>
                   <div>
                     <div className="text-2xl font-bold text-orange-600">
-                      {tasksForSelectedDate.filter(t => !t.completed).length}
+                      {tasksForSelectedDate.filter((t: Task) => t.status === 'pending').length}
                     </div>
                     <div className="text-xs text-gray-500">Pendientes</div>
                   </div>
@@ -230,13 +225,13 @@ export default function CalendarPage() {
             </div>
             <div className="text-center p-4 bg-green-50 rounded-lg">
               <div className="text-2xl font-bold text-green-600">
-                {tasks.filter((t: Task) => t.completed).length}
+                {tasks.filter((t: Task) => t.status === 'done').length}
               </div>
               <div className="text-sm text-gray-600">Completadas</div>
             </div>
             <div className="text-center p-4 bg-orange-50 rounded-lg">
               <div className="text-2xl font-bold text-orange-600">
-                {tasks.filter((t: Task) => !t.completed).length}
+                {tasks.filter((t: Task) => t.status === 'pending').length}
               </div>
               <div className="text-sm text-gray-600">Pendientes</div>
             </div>
