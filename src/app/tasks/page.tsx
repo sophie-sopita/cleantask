@@ -1,10 +1,12 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Metadata } from 'next'
 import { TaskForm } from '@/features/tasks/create'
 import { TaskList } from '@/features/tasks/list'
+import { TaskEditModal } from '@/features/tasks/edit'
+import { DeleteConfirmationModal } from '@/features/tasks/delete'
 import { useTasks } from '@/features/tasks/api'
+import { Task } from '@/entities/task/model'
 
 // Metadata se maneja en layout.tsx para client components
 // export const metadata: Metadata = {
@@ -19,6 +21,10 @@ import { useTasks } from '@/features/tasks/api'
 export default function TasksPage() {
   // Estado para controlar la visibilidad del formulario
   const [showForm, setShowForm] = useState(false)
+  
+  // Estado para controlar los modales
+  const [editingTask, setEditingTask] = useState<Task | null>(null)
+  const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null)
 
   // Hook para gestión de tareas
   const {
@@ -28,6 +34,8 @@ export default function TasksPage() {
     totalTasks,
     pendingTasks,
     completedTasks,
+    updateTask,
+    deleteTask,
     refreshTasks,
     clearError
   } = useTasks({
@@ -58,8 +66,15 @@ export default function TasksPage() {
   /**
    * Maneja la edición de una tarea
    */
-  const handleEditTask = (taskId: string) => {
-    console.log('Editar tarea:', taskId)
+  const handleEditTask = (task: Task) => {
+    setEditingTask(task)
+  }
+
+  /**
+   * Maneja el cambio de estado de una tarea
+   */
+  const handleToggleStatus = (taskId: string) => {
+    console.log('Cambiar estado de tarea:', taskId)
     // TODO: Implementar en HU-006
   }
 
@@ -67,8 +82,7 @@ export default function TasksPage() {
    * Maneja la eliminación de una tarea
    */
   const handleDeleteTask = (taskId: string) => {
-    console.log('Eliminar tarea:', taskId)
-    // TODO: Implementar en HU-006
+    setDeletingTaskId(taskId)
   }
 
   return (
@@ -225,14 +239,47 @@ export default function TasksPage() {
             
             <TaskList
               tasks={tasks}
-              loading={loading}
+              isLoading={loading}
               onEdit={handleEditTask}
               onDelete={handleDeleteTask}
+              onToggleStatus={handleToggleStatus}
               emptyMessage="No tienes tareas creadas. ¡Crea tu primera tarea!"
             />
           </div>
         </div>
       </div>
+
+      {/* Modal de edición */}
+      {editingTask && (
+        <TaskEditModal
+          task={editingTask}
+          isOpen={!!editingTask}
+          onClose={() => setEditingTask(null)}
+          onSave={async (taskData) => {
+            const result = await updateTask(editingTask.id, taskData)
+            if (result) {
+              setEditingTask(null)
+              await refreshTasks()
+            }
+          }}
+        />
+      )}
+
+      {/* Modal de confirmación de eliminación */}
+      {deletingTaskId && (
+        <DeleteConfirmationModal
+          task={tasks.find(t => t.id === deletingTaskId) || null}
+          isOpen={!!deletingTaskId}
+          onClose={() => setDeletingTaskId(null)}
+          onConfirm={async (taskId) => {
+            const result = await deleteTask(taskId)
+            if (result) {
+              setDeletingTaskId(null)
+              await refreshTasks()
+            }
+          }}
+        />
+      )}
     </div>
   )
 }

@@ -51,7 +51,8 @@ export function RegisterForm() {
       } else {
         setApiError(result.error || 'Error desconocido')
       }
-    } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (_error) {
       setApiError('Error de conexión. Inténtalo de nuevo.')
     } finally {
       setIsLoading(false)

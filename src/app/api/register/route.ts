@@ -73,7 +73,8 @@ export async function POST(request: NextRequest) {
     await new Promise(resolve => setTimeout(resolve, 500))
 
     // Respuesta exitosa (sin incluir la contraseña)
-    const { password, ...userResponse } = newUser
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password: _password, ...userResponse } = newUser
     
     return NextResponse.json({
       message: 'Usuario creado exitosamente',
@@ -92,7 +93,7 @@ export async function POST(request: NextRequest) {
 // Endpoint para obtener usuarios registrados (solo para desarrollo)
 export async function GET() {
   return NextResponse.json({
-    users: users.map(({ password, ...user }) => user),
+    users: users.map(({ password: _, ...user }) => user),
     total: users.length
   })
 }

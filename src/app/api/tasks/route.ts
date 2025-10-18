@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { CreateTaskPayload, Task, TaskStatus, TaskPriority } from '@/entities/task/model'
+import { Task, TaskStatus, TaskPriority } from '@/entities/task/model'
 
 /**
  * Base de datos mock en memoria para tareas
  * En producción, esto sería reemplazado por una base de datos real
  */
-let mockTasks: Task[] = [
+const mockTasks: Task[] = [
   {
     id: '1',
     title: 'Configurar proyecto Next.js',
@@ -44,31 +44,39 @@ function generateTaskId(): string {
 /**
  * Valida los datos de creación de tarea
  */
-function validateTaskData(data: any): { isValid: boolean; errors: string[] } {
+function validateTaskData(data: unknown): { isValid: boolean; errors: string[] } {
   const errors: string[] = []
 
+  // Type guard to ensure data is an object
+  if (!data || typeof data !== 'object') {
+    errors.push('Los datos deben ser un objeto válido')
+    return { isValid: false, errors }
+  }
+
+  const taskData = data as Record<string, unknown>
+
   // Validar título
-  if (!data.title || typeof data.title !== 'string') {
+  if (!taskData.title || typeof taskData.title !== 'string') {
     errors.push('El título es requerido y debe ser una cadena de texto')
-  } else if (data.title.trim().length < 3) {
+  } else if (taskData.title.trim().length < 3) {
     errors.push('El título debe tener al menos 3 caracteres')
-  } else if (data.title.trim().length > 100) {
+  } else if (taskData.title.trim().length > 100) {
     errors.push('El título no puede exceder 100 caracteres')
   }
 
   // Validar descripción (opcional)
-  if (data.description && typeof data.description !== 'string') {
+  if (taskData.description && typeof taskData.description !== 'string') {
     errors.push('La descripción debe ser una cadena de texto')
-  } else if (data.description && data.description.length > 500) {
+  } else if (taskData.description && typeof taskData.description === 'string' && taskData.description.length > 500) {
     errors.push('La descripción no puede exceder 500 caracteres')
   }
 
   // Validar fecha de vencimiento (opcional)
-  if (data.dueDate) {
-    if (typeof data.dueDate !== 'string') {
+  if (taskData.dueDate) {
+    if (typeof taskData.dueDate !== 'string') {
       errors.push('La fecha de vencimiento debe ser una cadena de texto')
     } else {
-      const date = new Date(data.dueDate)
+      const date = new Date(taskData.dueDate)
       if (isNaN(date.getTime())) {
         errors.push('La fecha de vencimiento debe ser una fecha válida')
       }
@@ -77,20 +85,20 @@ function validateTaskData(data: any): { isValid: boolean; errors: string[] } {
 
   // Validar prioridad
   const validPriorities = [TaskPriority.LOW, TaskPriority.MEDIUM, TaskPriority.HIGH]
-  if (!data.priority || !validPriorities.includes(data.priority)) {
+  if (!taskData.priority || !validPriorities.includes(taskData.priority as typeof TaskPriority[keyof typeof TaskPriority])) {
     errors.push('La prioridad debe ser: low, medium o high')
   }
 
   // Validar estado (opcional, por defecto será 'pending')
-  if (data.status) {
+  if (taskData.status) {
     const validStatuses = [TaskStatus.PENDING, TaskStatus.DONE]
-    if (!validStatuses.includes(data.status)) {
+    if (!validStatuses.includes(taskData.status as typeof TaskStatus[keyof typeof TaskStatus])) {
       errors.push('El estado debe ser: pending o done')
     }
   }
 
   // Validar userId
-  if (!data.userId || typeof data.userId !== 'string') {
+  if (!taskData.userId || typeof taskData.userId !== 'string') {
     errors.push('El ID de usuario es requerido')
   }
 
@@ -158,6 +166,128 @@ export async function GET(request: NextRequest) {
 }
 
 /**
+ * PUT /api/tasks - Actualizar una tarea existente
+ */
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json()
+    
+    // Validar que se proporcione el ID de la tarea
+    if (!body.id) {
+      return NextResponse.json({
+        success: false,
+        error: 'ID de tarea es requerido'
+      }, { status: 400 })
+    }
+
+    // Buscar la tarea existente
+    const taskIndex = mockTasks.findIndex(task => task.id === body.id)
+    if (taskIndex === -1) {
+      return NextResponse.json({
+        success: false,
+        error: 'Tarea no encontrada'
+      }, { status: 404 })
+    }
+
+    // Validar los datos de actualización
+    const validation = validateTaskData(body)
+    if (!validation.isValid) {
+      return NextResponse.json({
+        success: false,
+        error: 'Datos de tarea inválidos',
+        details: validation.errors
+      }, { status: 400 })
+    }
+
+    // Actualizar la tarea
+    const updatedTask: Task = {
+      ...mockTasks[taskIndex],
+      title: body.title,
+      description: body.description || '',
+      dueDate: body.dueDate || null,
+      priority: body.priority,
+      status: body.status || mockTasks[taskIndex].status
+    }
+
+    mockTasks[taskIndex] = updatedTask
+
+    // Simular delay de red
+    await new Promise(resolve => setTimeout(resolve, 100))
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        task: updatedTask,
+        message: 'Tarea actualizada exitosamente'
+      }
+    })
+
+  } catch (error) {
+    console.error('Error al actualizar tarea:', error)
+    
+    if (error instanceof SyntaxError) {
+      return NextResponse.json({
+        success: false,
+        error: 'Formato de datos inválido. Se esperaba JSON válido.'
+      }, { status: 400 })
+    }
+
+    return NextResponse.json({
+      success: false,
+      error: 'Error interno del servidor al actualizar la tarea'
+    }, { status: 500 })
+  }
+}
+
+/**
+ * DELETE /api/tasks - Eliminar una tarea
+ */
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const taskId = searchParams.get('id')
+    
+    if (!taskId) {
+      return NextResponse.json({
+        success: false,
+        error: 'ID de tarea es requerido'
+      }, { status: 400 })
+    }
+
+    // Buscar la tarea
+    const taskIndex = mockTasks.findIndex(task => task.id === taskId)
+    if (taskIndex === -1) {
+      return NextResponse.json({
+        success: false,
+        error: 'Tarea no encontrada'
+      }, { status: 404 })
+    }
+
+    // Eliminar la tarea
+    const deletedTask = mockTasks.splice(taskIndex, 1)[0]
+
+    // Simular delay de red
+    await new Promise(resolve => setTimeout(resolve, 100))
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        task: deletedTask,
+        message: 'Tarea eliminada exitosamente'
+      }
+    })
+
+  } catch (error) {
+    console.error('Error al eliminar tarea:', error)
+    
+    return NextResponse.json({
+      success: false,
+      error: 'Error interno del servidor al eliminar la tarea'
+    }, { status: 500 })
+  }
+}
+
+/**
  * POST /api/tasks
  * Crea una nueva tarea
  */
@@ -217,18 +347,4 @@ export async function POST(request: NextRequest) {
       error: 'Error interno del servidor al crear la tarea'
     }, { status: 500 })
   }
-}
-
-/**
- * Función auxiliar para obtener todas las tareas (para testing)
- */
-export function getAllMockTasks(): Task[] {
-  return [...mockTasks]
-}
-
-/**
- * Función auxiliar para limpiar las tareas mock (para testing)
- */
-export function clearMockTasks(): void {
-  mockTasks = []
 }

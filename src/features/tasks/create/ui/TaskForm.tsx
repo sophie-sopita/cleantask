@@ -16,7 +16,7 @@ export interface TaskFormData {
   title: string
   description: string
   dueDate: string
-  priority: TaskPriority
+  priority: typeof TaskPriority[keyof typeof TaskPriority]
 }
 
 export interface TaskFormErrors {
@@ -194,7 +194,7 @@ export function TaskForm({ onSubmit, onSuccess, onCancel, className = '' }: Task
             name="title"
             type="text"
             value={formData.title}
-            onChange={handleInputChange}
+            onChange={(e) => handleInputChange('title', e.target.value)}
             placeholder="Ingresa el título de la tarea"
             className={`w-full ${errors.title ? 'border-red-500' : ''}`}
             disabled={isLoading}

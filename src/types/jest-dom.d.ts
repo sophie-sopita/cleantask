@@ -16,7 +16,7 @@ declare global {
       toBeEmptyDOMElement(): R
       toBeInvalid(): R
       toBeValid(): R
-      toHaveStyle(css: string | Record<string, any>): R
+      toHaveStyle(css: string | Record<string, unknown>): R
       toHaveDisplayValue(value: string | RegExp | (string | RegExp)[]): R
     }
   }

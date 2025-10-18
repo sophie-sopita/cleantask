@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Task, CreateTaskPayload, TaskStatus, TaskPriority } from '@/entities/task/model'
+import { Task, CreateTaskPayload, UpdateTaskPayload, TaskStatus, TaskPriority } from '@/entities/task/model'
 
 /**
  * Tipos para el hook useTasks
  */
 export interface UseTasksOptions {
   userId?: string
-  status?: TaskStatus
-  priority?: TaskPriority
+  status?: typeof TaskStatus[keyof typeof TaskStatus]
+  priority?: typeof TaskPriority[keyof typeof TaskPriority]
   autoFetch?: boolean
 }
 
@@ -25,6 +25,8 @@ export interface UseTasksReturn {
   // Acciones CRUD
   fetchTasks: () => Promise<void>
   createTask: (taskData: CreateTaskPayload) => Promise<Task | null>
+  updateTask: (taskId: string, taskData: UpdateTaskPayload) => Promise<Task | null>
+  deleteTask: (taskId: string) => Promise<boolean>
   refreshTasks: () => Promise<void>
   
   // Utilidades
@@ -91,7 +93,7 @@ export function useTasks(options: UseTasksOptions = {}): UseTasksReturn {
   /**
    * Maneja errores de la API de forma consistente
    */
-  const handleApiError = useCallback((error: any, defaultMessage: string) => {
+  const handleApiError = useCallback((error: unknown, defaultMessage: string) => {
     console.error('API Error:', error)
     
     if (error instanceof Error) {
@@ -230,6 +232,95 @@ export function useTasks(options: UseTasksOptions = {}): UseTasksReturn {
     return tasks.find(task => task.id === id)
   }, [tasks])
 
+  /**
+   * Actualiza una tarea existente
+   */
+  const updateTask = useCallback(async (taskId: string, taskData: UpdateTaskPayload): Promise<Task | null> => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const payload = {
+        id: taskId, // Include the task ID in the request body
+        ...taskData,
+        title: taskData.title?.trim(),
+        description: taskData.description?.trim() || undefined
+      }
+
+      const response = await fetch(`/api/tasks`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Error HTTP: ${response.status}`)
+      }
+
+      const result: ApiResponse<{ task: Task }> = await response.json()
+
+      if (!result.success) {
+        throw new Error(result.error || 'Error al actualizar la tarea')
+      }
+
+      // Actualizar la tarea en el estado local
+      if (result.data?.task) {
+        setTasks(prevTasks => 
+          prevTasks.map(task => 
+            task.id === taskId ? result.data!.task : task
+          )
+        )
+      }
+
+      return result.data?.task || null
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
+      setError(errorMessage)
+      return null
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  /**
+   * Elimina una tarea
+   */
+  const deleteTask = useCallback(async (taskId: string): Promise<boolean> => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const response = await fetch(`/api/tasks?id=${taskId}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        throw new Error(`Error HTTP: ${response.status}`)
+      }
+
+      const result: ApiResponse<{ task: Task }> = await response.json()
+
+      if (!result.success) {
+        throw new Error(result.error || 'Error al eliminar la tarea')
+      }
+
+      // Remover la tarea del estado local
+      setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId))
+
+      return true
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
+      setError(errorMessage)
+      return false
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   // Estadísticas calculadas
   const totalTasks = tasks.length
   const pendingTasks = tasks.filter(task => task.status === TaskStatus.PENDING).length
@@ -256,6 +347,8 @@ export function useTasks(options: UseTasksOptions = {}): UseTasksReturn {
     // Acciones CRUD
     fetchTasks,
     createTask,
+    updateTask,
+    deleteTask,
     refreshTasks,
     
     // Utilidades
