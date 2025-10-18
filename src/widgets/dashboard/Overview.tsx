@@ -4,9 +4,9 @@ import { useTasks } from '@/features/tasks/api/useTasks'
 import { Task } from '@/entities/task/model'
 
 export default function Overview() {
-  const { data: tasks = [], isLoading, error } = useTasks()
+  const { tasks, loading, error } = useTasks()
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="bg-white rounded-xl shadow-lg p-6">
         <div className="animate-pulse">
@@ -37,7 +37,7 @@ export default function Overview() {
 
   // Calcular estadísticas
   const totalTasks = tasks.length
-  const completedTasks = tasks.filter((task: Task) => task.status === 'done' || task.completed).length
+  const completedTasks = tasks.filter((task: Task) => task.status === 'done').length
   const pendingTasks = totalTasks - completedTasks
   const highPriorityTasks = tasks.filter((task: Task) => task.priority === 'high').length
   
@@ -57,7 +57,7 @@ export default function Overview() {
     const dueDate = new Date(task.dueDate)
     const today = new Date()
     const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
-    return dueDate >= today && dueDate <= nextWeek && task.status !== 'done' && !task.completed
+    return dueDate >= today && dueDate <= nextWeek && task.status === 'pending'
   }).length
 
   // Tareas vencidas
@@ -65,7 +65,7 @@ export default function Overview() {
     if (!task.dueDate) return false
     const dueDate = new Date(task.dueDate)
     const today = new Date()
-    return dueDate < today && task.status !== 'done' && !task.completed
+    return dueDate < today && task.status === 'pending'
   }).length
 
   return (
