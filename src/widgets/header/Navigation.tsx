@@ -10,6 +10,7 @@ export default function Navigation() {
     { href: '/', label: 'Inicio', icon: '🏠' },
     { href: '/tasks', label: 'Tareas', icon: '✅' },
     { href: '/calendar', label: 'Calendario', icon: '📅' },
+    { href: '/dashboard', label: 'Dashboard', icon: '📊' },
     { href: '/about', label: 'Acerca de', icon: 'ℹ️' },
   ]
 
