@@ -1,7 +1,7 @@
 'use client'
 
 import { useTasks } from '@/features/tasks/api/useTasks'
-import { Task } from '@/entities/task/model'
+
 import {
   BarChart,
   Bar,
@@ -14,8 +14,7 @@ import {
   Pie,
   Cell,
   LineChart,
-  Line,
-  Legend
+  Line
 } from 'recharts'
 
 interface ChartProps {
@@ -99,7 +98,7 @@ export default function Chart({ className = '' }: ChartProps) {
 
   const monthlyData = getMonthlyData()
 
-  const COLORS = ['#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6']
+
 
   return (
     <div className={`space-y-6 ${className}`}>

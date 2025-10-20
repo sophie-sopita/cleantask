@@ -34,7 +34,7 @@ interface TaskItemProps {
  */
 const TaskItem: React.FC<TaskItemProps> = ({
   task,
-  onEdit,
+  onEdit: _onEdit,
   onDelete,
   onToggleStatus,
   onUpdateTask,

@@ -1,5 +1,3 @@
-import Link from 'next/link'
-
 // Este es un React Server Component por defecto
 export default function HomePage() {
   return (

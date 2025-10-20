@@ -21,7 +21,7 @@ export default function AdminUsersContent() {
   const [query, setQuery] = useState('')
   const [role, setRole] = useState<'' | 'usuario' | 'admin'>('')
   const [page, setPage] = useState(1)
-  const [limit, setLimit] = useState(10)
+const [limit] = useState(10)
 
   const [total, setTotal] = useState<number>(0)
   const [adminsCount, setAdminsCount] = useState<number>(0)
@@ -54,7 +54,7 @@ export default function AdminUsersContent() {
         const resUsuarios = await fetch(`${baseUrl}?role=usuario&limit=1&page=1`, { headers: commonHeaders })
         const jsonUsuarios = await resUsuarios.json().catch(() => null)
         setUsuariosCount(jsonUsuarios?.data?.pagination?.total ?? 0)
-      } catch (e) {
+      } catch {
         // Silenciar errores en conteos para no bloquear la UI
       }
     }

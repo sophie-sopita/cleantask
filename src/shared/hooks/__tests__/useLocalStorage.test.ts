@@ -137,10 +137,10 @@ describe('useLocalStorage', () => {
   })
 
   it('should handle null values', () => {
-    const { result } = renderHook(() => useLocalStorage('nullable', null))
+    const { result } = renderHook(() => useLocalStorage<string | null>('nullable', null))
     
     act(() => {
-      result.current[1]('not null' as any)
+      result.current[1]('not null')
     })
 
     expect(result.current[0]).toBe('not null')

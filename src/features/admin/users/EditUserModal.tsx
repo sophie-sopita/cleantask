@@ -14,6 +14,13 @@ export interface AdminUser {
   role: 'usuario' | 'admin'
 }
 
+interface UpdateUserPayload {
+  name: string
+  email: string
+  role: 'usuario' | 'admin'
+  password?: string
+}
+
 interface EditUserModalProps {
   isOpen: boolean
   user: AdminUser | null
@@ -61,7 +68,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, user, onCl
     if (!validate() || !user) return
     setSubmitting(true)
     try {
-      const payload: any = { name: name.trim(), email: email.trim(), role }
+      const payload: UpdateUserPayload = { name: name.trim(), email: email.trim(), role }
       if (password) payload.password = password
       const res = await fetch(`/api/admin/users/${user.id}`, {
         method: 'PATCH',

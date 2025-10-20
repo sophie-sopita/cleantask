@@ -3,30 +3,24 @@ import { verify } from 'jsonwebtoken'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+const JWT_SECRET = process.env.JWT_SECRET || 'secret'
+interface JwtPayload { userId: number; role: string }
+interface UserTask { id_tarea: number; titulo: string; estado: string; createdAt: Date }
+interface UpdateUserData { nombre?: string; email?: string; rol?: string; contraseña?: string }
 
 // Middleware para verificar token y rol de admin
-function verifyAdminToken(request: NextRequest) {
+function verifyAdminToken(req: Request) {
   try {
-    const authHeader = request.headers.get('authorization')
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return { error: 'Token de autorización requerido', status: 401 }
-    }
+    const authHeader = req.headers.get('Authorization') || ''
+    const token = authHeader.replace('Bearer ', '')
+    const decoded = verify(token, JWT_SECRET) as JwtPayload
 
-    const token = authHeader.substring(7)
-    const decoded = verify(token, JWT_SECRET) as any
-
-    if (!decoded || !decoded.userId) {
-      return { error: 'Token inválido', status: 401 }
-    }
-
-    if (decoded.role !== 'admin') {
+    if (!decoded || decoded.role !== 'admin') {
       return { error: 'Acceso denegado. Se requieren permisos de administrador', status: 403 }
     }
 
     return { userId: decoded.userId, role: decoded.role }
-  } catch (error) {
+  } catch {
     return { error: 'Token inválido', status: 401 }
   }
 }
@@ -96,7 +90,7 @@ export async function GET(
       role: user.rol,
       createdAt: user.createdAt.toISOString(),
       tasksCount: user._count.tareas,
-      recentTasks: user.tareas.map((task: any) => ({
+      recentTasks: user.tareas.map((task: UserTask) => ({
         id: task.id_tarea.toString(),
         title: task.titulo,
         status: task.estado,
@@ -189,7 +183,7 @@ export async function PATCH(
     }
 
     // Preparar datos de actualización
-    const updateData: any = {}
+    const updateData: UpdateUserData = {}
     
     if (name) updateData.nombre = name
     if (email) updateData.email = email

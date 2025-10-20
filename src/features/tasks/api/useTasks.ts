@@ -310,9 +310,9 @@ export function useTasks(options: UseTasksOptions = {}): UseTasksReturn {
       }
     }
 
-    channel.addEventListener('message', onMessage as any)
+    channel.addEventListener('message', onMessage)
     return () => {
-      channel.removeEventListener('message', onMessage as any)
+      channel.removeEventListener('message', onMessage)
       channel.close()
     }
   }, [userId, fetchTasks])

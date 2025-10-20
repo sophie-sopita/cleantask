@@ -1,28 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { TaskStatus, TaskPriority } from '@/entities/task/model'
+import { TaskStatus } from '@/entities/task/model'
 import { prisma } from '@/lib/prisma'
 import { verify } from 'jsonwebtoken'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+const JWT_SECRET = process.env.JWT_SECRET || 'secret'
+interface JwtPayload { userId: number | string; role: string }
 
 /**
  * Extrae y verifica el token JWT del header Authorization
  */
 function verifyToken(request: NextRequest): { userId: number; role: string } | null {
   try {
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const authHeader = request.headers.get('Authorization') || request.headers.get('authorization') || ''
+    if (!authHeader.startsWith('Bearer ')) {
       return null
     }
-
-    const token = authHeader.substring(7)
-    const decoded = verify(token, JWT_SECRET) as any
-    
-    return {
-      userId: decoded.userId,
-      role: decoded.role
-    }
-  } catch (error) {
+    const token = authHeader.slice(7)
+    const decoded = verify(token, JWT_SECRET) as JwtPayload
+    const userId = typeof decoded.userId === 'number' ? decoded.userId : parseInt(String(decoded.userId), 10)
+    if (!userId || Number.isNaN(userId)) return null
+    return { userId, role: decoded.role }
+  } catch {
     return null
   }
 }
@@ -102,10 +100,9 @@ export async function GET(request: NextRequest) {
     // Obtener parámetros de consulta
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
-    const priority = searchParams.get('priority')
 
     // Construir filtros para Prisma
-    const where: any = {
+    const where: Record<string, unknown> = {
       id_usuario: auth.userId
     }
 

@@ -28,7 +28,7 @@ function verifyToken(request: NextRequest): { userId: number } | null {
     const userId = typeof decoded.userId === 'number' ? decoded.userId : parseInt(String(decoded.userId), 10)
     if (!userId || Number.isNaN(userId)) return null
     return { userId }
-  } catch (error) {
+  } catch {
     return null
   }
 }

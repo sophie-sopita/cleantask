@@ -74,19 +74,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         body: JSON.stringify({ email, password }),
       })
 
-      let data: any = null
+     type LoginResponse = { token: string; user: AuthUser; error?: string }
+     let data: LoginResponse | null = null
       try {
-        data = await response.json()
+        data = await response.json() as LoginResponse
       } catch {
         data = null
       }
 
       if (!response.ok) {
-        const message = (data && typeof data.error === 'string' && data.error) || (response.status === 401 ? 'Credenciales inválidas' : 'Error al iniciar sesión')
+      const message = (data && typeof data.error === 'string' && data.error) || (response.status === 401 ? 'Credenciales inválidas' : 'Error al iniciar sesión')
         throw new Error(message)
       }
 
-      const { token: authToken, user: authUser } = data
+     const { token: authToken, user: authUser } = data as LoginResponse
 
       setToken(authToken)
       setUser(authUser)

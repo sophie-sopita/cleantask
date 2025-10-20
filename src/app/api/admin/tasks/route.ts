@@ -2,30 +2,22 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verify } from 'jsonwebtoken'
 import { prisma } from '@/lib/prisma'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+const JWT_SECRET = process.env.JWT_SECRET || 'secret'
+interface JwtPayload { userId: number; role: string }
 
 // Middleware para verificar token y rol de admin
-function verifyAdminToken(request: NextRequest) {
+function verifyAdminToken(req: Request) {
   try {
-    const authHeader = request.headers.get('authorization')
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return { error: 'Token de autorización requerido', status: 401 }
-    }
+    const authHeader = req.headers.get('Authorization') || ''
+    const token = authHeader.replace('Bearer ', '')
+    const decoded = verify(token, JWT_SECRET) as JwtPayload
 
-    const token = authHeader.substring(7)
-    const decoded = verify(token, JWT_SECRET) as any
-
-    if (!decoded || !decoded.userId) {
-      return { error: 'Token inválido', status: 401 }
-    }
-
-    if (decoded.role !== 'admin') {
+    if (!decoded || decoded.role !== 'admin') {
       return { error: 'Acceso denegado. Se requieren permisos de administrador', status: 403 }
     }
 
     return { userId: decoded.userId, role: decoded.role }
-  } catch (error) {
+  } catch {
     return { error: 'Token inválido', status: 401 }
   }
 }
@@ -53,7 +45,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || ''
 
     // Construir filtros
-    const where: any = {}
+    const where: Record<string, unknown> = {}
     
     if (status) {
       where.estado = status

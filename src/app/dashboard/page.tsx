@@ -3,8 +3,6 @@
 import Overview from '@/widgets/dashboard/Overview'
 import Chart from '@/widgets/dashboard/Chart'
 import { useAuth } from '@/shared/hooks/useAuth'
-import Link from 'next/link'
-import { Button } from '@/shared/ui/Button'
 
 export default function DashboardPage() {
   const { user } = useAuth()
