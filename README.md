@@ -150,6 +150,20 @@ Este proyecto sirve como ejemplo de implementación de tecnologías modernas. Pa
 4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
 5. Crea un Pull Request
 
+## 🚢 Releases
+
+- Notas internas del release `v0.1.0`: [docs/releases/v0.1.0.md](docs/releases/v0.1.0.md)
+- Página de Releases en GitHub: https://github.com/sophie-sopita/cleantask/releases
+
+## 🔐 Cuenta admin por defecto (seed)
+
+Al ejecutar el seed (`pnpm prisma db seed`), se crea una cuenta administradora por defecto para acceder al panel `/admin`:
+
+- Email: `admin@cleantask.com`
+- Password: `admin123`
+
+Advertencia: estas credenciales son solo para ambiente local/desarrollo. Para producción, elimina o modifica estos datos y utiliza un proceso de provisioning seguro.
+
 ## 📄 Licencia
 
 Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.

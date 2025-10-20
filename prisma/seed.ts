@@ -16,6 +16,9 @@ async function main() {
   const adminPassword = await bcrypt.hash('admin123', 12)
   const userPassword = await bcrypt.hash('user123', 12)
 
+  // Nota: Se crea una cuenta admin por defecto para acceso al panel.
+  // Email: admin@cleantask.com, Password: admin123
+  // Cambia estas credenciales para ambientes productivos.
   const adminUser = await prisma.usuario.create({
     data: {
       nombre: 'Administrador',
