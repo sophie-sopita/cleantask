@@ -131,7 +131,19 @@ export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext)
   
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider')
+    // Fallback seguro: evitar crash si el hook se usa fuera del Provider
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('useAuth usado fuera de AuthProvider; devolviendo valores por defecto.')
+    }
+    return {
+      user: null,
+      token: null,
+      isAuthenticated: false,
+      isLoading: false,
+      login: async () => {},
+      logout: () => {},
+      setToken: () => {},
+    }
   }
   
   return context
