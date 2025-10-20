@@ -1,3 +1,5 @@
+'use client'
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 
 export interface AuthUser {
@@ -30,6 +32,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Initialize auth state from localStorage
   useEffect(() => {
+    // Verificar que estamos en el cliente antes de acceder a localStorage
+    if (typeof window === 'undefined') {
+      setIsLoading(false)
+      return
+    }
+
     const storedToken = localStorage.getItem('auth_token')
     const storedUser = localStorage.getItem('auth_user')
 
@@ -49,14 +57,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const setToken = (newToken: string) => {
     setTokenState(newToken)
-    localStorage.setItem('auth_token', newToken)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('auth_token', newToken)
+    }
   }
 
   const login = async (email: string, password: string): Promise<void> => {
     setIsLoading(true)
     
     try {
-      // Mock API call - replace with actual authentication
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
@@ -65,19 +74,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         body: JSON.stringify({ email, password }),
       })
 
-      if (!response.ok) {
-        throw new Error('Login failed')
+      let data: any = null
+      try {
+        data = await response.json()
+      } catch {
+        data = null
       }
 
-      const data = await response.json()
+      if (!response.ok) {
+        const message = (data && typeof data.error === 'string' && data.error) || (response.status === 401 ? 'Credenciales inválidas' : 'Error al iniciar sesión')
+        throw new Error(message)
+      }
+
       const { token: authToken, user: authUser } = data
 
       setToken(authToken)
       setUser(authUser)
-      localStorage.setItem('auth_user', JSON.stringify(authUser))
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('auth_user', JSON.stringify(authUser))
+      }
     } catch (error) {
       console.error('Login error:', error)
-      throw error
+      throw error instanceof Error ? error : new Error('Error al iniciar sesión')
     } finally {
       setIsLoading(false)
     }
@@ -86,8 +104,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = () => {
     setUser(null)
     setTokenState(null)
-    localStorage.removeItem('auth_token')
-    localStorage.removeItem('auth_user')
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('auth_token')
+      localStorage.removeItem('auth_user')
+    }
   }
 
   const value: AuthContextType = {

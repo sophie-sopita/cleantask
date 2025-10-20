@@ -21,10 +21,51 @@ export function formatDate(date: Date): string {
 }
 
 /**
+ * Formats time to a readable string
+ */
+export function formatTime(date: Date): string {
+  return date.toLocaleTimeString('es-ES', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+/**
+ * Capitalizes the first letter of a string and lowercases the rest
+ */
+export function capitalizeFirst(str: string): string {
+  if (!str) return str
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
+}
+
+/**
  * Capitalizes the first letter of a string
  */
 export function capitalize(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1)
+}
+
+/**
+ * Truncates text to a maximum length and adds ellipsis
+ */
+export function truncateText(text: string, maxLength: number): string {
+  if (text.length <= maxLength) return text
+  return text.slice(0, maxLength) + '...'
+}
+
+/**
+ * Validates email format
+ */
+export function validateEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return emailRegex.test(email)
+}
+
+/**
+ * Generates a random ID
+ */
+export function generateId(): string {
+  return Math.random().toString(36).substr(2, 9)
 }
 
 /**
@@ -42,4 +83,11 @@ export function debounce<T extends unknown[]>(
     }
     timeout = setTimeout(() => func(...args), wait)
   }
+}
+
+/**
+ * Joins class names, filtering out falsy values
+ */
+export function classNames(...classes: (string | undefined | null | false)[]): string {
+  return classes.filter(Boolean).join(' ')
 }

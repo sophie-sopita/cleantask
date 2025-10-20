@@ -1,7 +1,8 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Task, TaskPriority, UpdateTaskPayload } from '@/entities/task/model'
+import { Task, UpdateTaskPayload } from '@/entities/task/model'
+import { Input, Textarea } from '@/shared/ui'
 
 interface TaskEditModalProps {
   task: Task
@@ -14,22 +15,19 @@ interface TaskFormData {
   title: string
   description: string
   dueDate: string
-  priority: typeof TaskPriority[keyof typeof TaskPriority]
 }
 
 interface TaskFormErrors {
   title?: string
   description?: string
   dueDate?: string
-  priority?: string
 }
 
 export function TaskEditModal({ task, isOpen, onClose, onSave }: TaskEditModalProps) {
   const [formData, setFormData] = useState<TaskFormData>({
     title: '',
     description: '',
-    dueDate: '',
-    priority: TaskPriority.MEDIUM
+    dueDate: ''
   })
   
   const [errors, setErrors] = useState<TaskFormErrors>({})
@@ -41,8 +39,7 @@ export function TaskEditModal({ task, isOpen, onClose, onSave }: TaskEditModalPr
       setFormData({
         title: task.title,
         description: task.description || '',
-        dueDate: task.dueDate ? task.dueDate.split('T')[0] : '',
-        priority: task.priority
+        dueDate: task.dueDate ? task.dueDate.split('T')[0] : ''
       })
       setErrors({})
     }
@@ -108,8 +105,7 @@ export function TaskEditModal({ task, isOpen, onClose, onSave }: TaskEditModalPr
       const updateData: UpdateTaskPayload = {
         title: formData.title.trim(),
         description: formData.description.trim() || undefined,
-        dueDate: formData.dueDate || undefined,
-        priority: formData.priority
+        dueDate: formData.dueDate || undefined
       }
 
       await onSave(updateData)
@@ -140,83 +136,60 @@ export function TaskEditModal({ task, isOpen, onClose, onSave }: TaskEditModalPr
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Título */}
           <div>
-            <label htmlFor="edit-title" className="block text-sm font-medium text-gray-700 mb-1">
-              Título *
-            </label>
-            <input
+            <Input
               id="edit-title"
               type="text"
+              label="Título *"
               value={formData.title}
               onChange={(e) => handleInputChange('title', e.target.value)}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.title ? 'border-red-500' : 'border-gray-300'
-              }`}
               placeholder="Ingresa el título de la tarea"
               disabled={isLoading}
+              leftIcon={
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              }
+              error={errors.title}
             />
-            {errors.title && (
-              <p className="mt-1 text-sm text-red-600">{errors.title}</p>
-            )}
           </div>
 
           {/* Descripción */}
           <div>
-            <label htmlFor="edit-description" className="block text-sm font-medium text-gray-700 mb-1">
-              Descripción
-            </label>
-            <textarea
+            <Textarea
               id="edit-description"
+              label="Descripción"
               value={formData.description}
               onChange={(e) => handleInputChange('description', e.target.value)}
               rows={3}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.description ? 'border-red-500' : 'border-gray-300'
-              }`}
               placeholder="Descripción opcional de la tarea"
               disabled={isLoading}
+              leftIcon={
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
+                </svg>
+              }
+              error={errors.description}
             />
-            {errors.description && (
-              <p className="mt-1 text-sm text-red-600">{errors.description}</p>
-            )}
           </div>
 
           {/* Fecha de vencimiento */}
           <div>
-            <label htmlFor="edit-dueDate" className="block text-sm font-medium text-gray-700 mb-1">
-              Fecha de vencimiento
-            </label>
-            <input
+            <Input
               id="edit-dueDate"
               type="date"
+              label="Fecha de vencimiento"
               value={formData.dueDate}
               onChange={(e) => handleInputChange('dueDate', e.target.value)}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.dueDate ? 'border-red-500' : 'border-gray-300'
-              }`}
               disabled={isLoading}
+              leftIcon={
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              }
+              error={errors.dueDate}
             />
-            {errors.dueDate && (
-              <p className="mt-1 text-sm text-red-600">{errors.dueDate}</p>
-            )}
           </div>
 
-          {/* Prioridad */}
-          <div>
-            <label htmlFor="edit-priority" className="block text-sm font-medium text-gray-700 mb-1">
-              Prioridad *
-            </label>
-            <select
-              id="edit-priority"
-              value={formData.priority}
-              onChange={(e) => handleInputChange('priority', e.target.value as typeof TaskPriority[keyof typeof TaskPriority])}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              disabled={isLoading}
-            >
-              <option value={TaskPriority.LOW}>Baja</option>
-              <option value={TaskPriority.MEDIUM}>Media</option>
-              <option value={TaskPriority.HIGH}>Alta</option>
-            </select>
-          </div>
 
           {/* Botones */}
           <div className="flex gap-3 pt-4">

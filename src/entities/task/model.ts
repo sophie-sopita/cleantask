@@ -7,20 +7,21 @@ export type Task = {
   title: string
   description?: string
   dueDate?: string
-  priority: 'low' | 'medium' | 'high'
+  priority?: 'low' | 'medium' | 'high'
   status: 'pending' | 'done'
   userId: string
+  createdAt: string
 }
 
 /**
  * Task creation payload (without id)
  */
-export type CreateTaskPayload = Omit<Task, 'id'>
+export type CreateTaskPayload = Omit<Task, 'id' | 'createdAt'>
 
 /**
  * Task update payload (partial fields)
  */
-export type UpdateTaskPayload = Partial<Omit<Task, 'id' | 'userId'>>
+export type UpdateTaskPayload = Partial<Omit<Task, 'id' | 'userId' | 'createdAt'>>
 
 /**
  * Task priority options
@@ -42,10 +43,9 @@ export const TaskStatus = {
 // Extended Task interface for future features
 export interface ExtendedTask extends Task {
   completed: boolean;
-  priority: 'low' | 'medium' | 'high';
   category?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CreateTaskDto {

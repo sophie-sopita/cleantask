@@ -47,22 +47,17 @@ export default function Chart({ className = '' }: ChartProps) {
     )
   }
 
-  // Datos para gráfica de barras - Tareas por prioridad
-  const priorityData = [
+  // Datos para gráfica de barras - Tareas por estado (datos reales)
+  const statusBarData = [
     {
-      name: 'Alta',
-      count: tasks.filter(task => task.priority === 'high').length,
-      color: '#ef4444'
-    },
-    {
-      name: 'Media',
-      count: tasks.filter(task => task.priority === 'medium').length,
-      color: '#f59e0b'
-    },
-    {
-      name: 'Baja',
-      count: tasks.filter(task => task.priority === 'low').length,
+      name: 'Completadas',
+      count: tasks.filter(task => task.status === 'done').length,
       color: '#10b981'
+    },
+    {
+      name: 'Pendientes',
+      count: tasks.filter(task => task.status === 'pending').length,
+      color: '#f59e0b'
     }
   ]
 
@@ -80,27 +75,23 @@ export default function Chart({ className = '' }: ChartProps) {
     }
   ]
 
-  // Datos para gráfica de línea - Tareas creadas por mes (últimos 6 meses)
+  // Datos para gráfica de línea - Tareas creadas por mes (últimos 6 meses) usando createdAt real
   const getMonthlyData = () => {
-    const months = []
+    const months: { name: string; tareas: number }[] = []
     const now = new Date()
     
     for (let i = 5; i >= 0; i--) {
-      const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
-      const monthName = date.toLocaleDateString('es-ES', { month: 'short' })
-      const year = date.getFullYear()
+      const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const monthName = monthDate.toLocaleDateString('es-ES', { month: 'short' })
+      const year = monthDate.getFullYear()
       
-      // Simular datos de creación basados en el ID de la tarea (mock)
       const tasksInMonth = tasks.filter(task => {
-        // Como no tenemos createdAt real, usamos el índice como simulación
-        const taskIndex = parseInt(task.id) || 0
-        return (taskIndex % 6) === i
+        if (!task.createdAt) return false
+        const created = new Date(task.createdAt)
+        return created.getMonth() === monthDate.getMonth() && created.getFullYear() === monthDate.getFullYear()
       }).length
 
-      months.push({
-        name: `${monthName} ${year}`,
-        tareas: tasksInMonth
-      })
+      months.push({ name: `${monthName} ${year}`, tareas: tasksInMonth })
     }
     
     return months
@@ -112,13 +103,13 @@ export default function Chart({ className = '' }: ChartProps) {
 
   return (
     <div className={`space-y-6 ${className}`}>
-      {/* Gráfica de Barras - Tareas por Prioridad */}
+      {/* Gráfica de Barras - Tareas por Estado */}
       <div className="bg-white rounded-xl shadow-lg p-6">
         <h3 className="text-xl font-semibold text-gray-800 mb-4">
-          📊 Tareas por Prioridad
+          📊 Tareas por Estado
         </h3>
         <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={priorityData}>
+          <BarChart data={statusBarData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="name" />
             <YAxis />
@@ -127,7 +118,7 @@ export default function Chart({ className = '' }: ChartProps) {
               labelStyle={{ color: '#374151' }}
             />
             <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-              {priorityData.map((entry, index) => (
+              {statusBarData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={entry.color} />
               ))}
             </Bar>
@@ -207,9 +198,9 @@ export default function Chart({ className = '' }: ChartProps) {
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold">
-              {tasks.filter(t => t.priority === 'high').length}
+              {tasks.filter(t => t.status === 'pending').length}
             </div>
-            <div className="text-sm opacity-90">Tareas de Alta Prioridad</div>
+            <div className="text-sm opacity-90">Tareas Pendientes</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold">

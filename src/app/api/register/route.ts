@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { RegisterUserPayload } from '@/entities/user/model'
-
-// Mock database - en producción esto sería una base de datos real
-const users: Array<{ id: string; name: string; email: string; password: string; createdAt: string }> = []
+import { prisma } from '@/lib/prisma'
+import bcrypt from 'bcryptjs'
 
 export async function POST(request: NextRequest) {
   try {
@@ -50,7 +49,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar si el usuario ya existe
-    const existingUser = users.find(user => user.email === body.email)
+    const existingUser = await prisma.usuario.findUnique({
+      where: { email: body.email }
+    })
+    
     if (existingUser) {
       return NextResponse.json(
         { error: 'Ya existe un usuario con este email' },
@@ -58,27 +60,29 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Crear nuevo usuario
-    const newUser = {
-      id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      name: body.name,
-      email: body.email,
-      password: body.password, // En producción esto debería estar hasheado
-      createdAt: new Date().toISOString()
-    }
+    // Hash de la contraseña
+    const hashedPassword = await bcrypt.hash(body.password, 12)
 
-    users.push(newUser)
+    // Crear nuevo usuario en la base de datos
+    const newUser = await prisma.usuario.create({
+      data: {
+        nombre: body.name,
+        email: body.email,
+        contraseña: hashedPassword,
+        rol: 'usuario' // Por defecto es usuario estándar
+      },
+      select: {
+        id_usuario: true,
+        nombre: true,
+        email: true,
+        rol: true,
+        createdAt: true
+      }
+    })
 
-    // Simular delay de red
-    await new Promise(resolve => setTimeout(resolve, 500))
-
-    // Respuesta exitosa (sin incluir la contraseña)
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password: _password, ...userResponse } = newUser
-    
     return NextResponse.json({
       message: 'Usuario creado exitosamente',
-      user: userResponse
+      user: newUser
     }, { status: 201 })
 
   } catch (error) {
@@ -90,10 +94,31 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Endpoint para obtener usuarios registrados (solo para desarrollo)
+// Endpoint para obtener usuarios registrados (solo para desarrollo/admin)
 export async function GET() {
-  return NextResponse.json({
-    users: users.map(({ password: _, ...user }) => user),
-    total: users.length
-  })
+  try {
+    const users = await prisma.usuario.findMany({
+      select: {
+        id_usuario: true,
+        nombre: true,
+        email: true,
+        rol: true,
+        createdAt: true,
+        _count: {
+          select: { tareas: true }
+        }
+      }
+    })
+
+    return NextResponse.json({
+      users,
+      total: users.length
+    })
+  } catch (error) {
+    console.error('Error al obtener usuarios:', error)
+    return NextResponse.json(
+      { error: 'Error interno del servidor' },
+      { status: 500 }
+    )
+  }
 }

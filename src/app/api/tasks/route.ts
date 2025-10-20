@@ -1,44 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Task, TaskStatus, TaskPriority } from '@/entities/task/model'
+import { TaskStatus, TaskPriority } from '@/entities/task/model'
+import { prisma } from '@/lib/prisma'
+import { verify } from 'jsonwebtoken'
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
 
 /**
- * Base de datos mock en memoria para tareas
- * En producción, esto sería reemplazado por una base de datos real
+ * Extrae y verifica el token JWT del header Authorization
  */
-const mockTasks: Task[] = [
-  {
-    id: '1',
-    title: 'Configurar proyecto Next.js',
-    description: 'Instalar y configurar Next.js 15 con TypeScript y Tailwind CSS',
-    dueDate: '2024-12-30',
-    priority: 'high',
-    status: 'done',
-    userId: 'user-1'
-  },
-  {
-    id: '2',
-    title: 'Implementar autenticación',
-    description: 'Configurar NextAuth.js para manejo de sesiones de usuario',
-    dueDate: '2024-12-28',
-    priority: 'medium',
-    status: 'pending',
-    userId: 'user-1'
-  },
-  {
-    id: '3',
-    title: 'Crear componentes de UI',
-    description: 'Desarrollar componentes reutilizables siguiendo el patrón FSD',
-    priority: 'low',
-    status: 'pending',
-    userId: 'user-1'
+function verifyToken(request: NextRequest): { userId: number; role: string } | null {
+  try {
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return null
+    }
+
+    const token = authHeader.substring(7)
+    const decoded = verify(token, JWT_SECRET) as any
+    
+    return {
+      userId: decoded.userId,
+      role: decoded.role
+    }
+  } catch (error) {
+    return null
   }
-]
-
-/**
- * Genera un ID único para nuevas tareas
- */
-function generateTaskId(): string {
-  return `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 }
 
 /**
@@ -47,7 +33,6 @@ function generateTaskId(): string {
 function validateTaskData(data: unknown): { isValid: boolean; errors: string[] } {
   const errors: string[] = []
 
-  // Type guard to ensure data is an object
   if (!data || typeof data !== 'object') {
     errors.push('Los datos deben ser un objeto válido')
     return { isValid: false, errors }
@@ -83,11 +68,7 @@ function validateTaskData(data: unknown): { isValid: boolean; errors: string[] }
     }
   }
 
-  // Validar prioridad
-  const validPriorities = [TaskPriority.LOW, TaskPriority.MEDIUM, TaskPriority.HIGH]
-  if (!taskData.priority || !validPriorities.includes(taskData.priority as typeof TaskPriority[keyof typeof TaskPriority])) {
-    errors.push('La prioridad debe ser: low, medium o high')
-  }
+  // Note: Priority validation removed as 'prioridad' field doesn't exist in schema
 
   // Validar estado (opcional, por defecto será 'pending')
   if (taskData.status) {
@@ -95,11 +76,6 @@ function validateTaskData(data: unknown): { isValid: boolean; errors: string[] }
     if (!validStatuses.includes(taskData.status as typeof TaskStatus[keyof typeof TaskStatus])) {
       errors.push('El estado debe ser: pending o done')
     }
-  }
-
-  // Validar userId
-  if (!taskData.userId || typeof taskData.userId !== 'string') {
-    errors.push('El ID de usuario es requerido')
   }
 
   return {
@@ -114,53 +90,174 @@ function validateTaskData(data: unknown): { isValid: boolean; errors: string[] }
  */
 export async function GET(request: NextRequest) {
   try {
+    // Verificar autenticación
+    const auth = verifyToken(request)
+    if (!auth) {
+      return NextResponse.json(
+        { error: 'Token de autenticación requerido' },
+        { status: 401 }
+      )
+    }
+
     // Obtener parámetros de consulta
     const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('userId') || 'user-1' // Mock user ID
     const status = searchParams.get('status')
     const priority = searchParams.get('priority')
 
-    // Filtrar tareas por usuario
-    let userTasks = mockTasks.filter(task => task.userId === userId)
+    // Construir filtros para Prisma
+    const where: any = {
+      id_usuario: auth.userId
+    }
 
-    // Aplicar filtros adicionales si se proporcionan
     if (status) {
-      userTasks = userTasks.filter(task => task.status === status)
+      where.estado = status
     }
 
-    if (priority) {
-      userTasks = userTasks.filter(task => task.priority === priority)
-    }
+    // Note: priority filtering removed as 'prioridad' field doesn't exist in schema
+    // if (priority) {
+    //   where.prioridad = priority
+    // }
 
-    // Ordenar tareas por prioridad y estado
-    userTasks.sort((a, b) => {
-      // Primero por estado (pendientes primero)
-      if (a.status !== b.status) {
-        return a.status === TaskStatus.PENDING ? -1 : 1
-      }
-
-      // Luego por prioridad
-      const priorityOrder = { high: 3, medium: 2, low: 1 }
-      const aPriority = priorityOrder[a.priority as keyof typeof priorityOrder] || 0
-      const bPriority = priorityOrder[b.priority as keyof typeof priorityOrder] || 0
-      
-      return bPriority - aPriority
+    // Obtener tareas de la base de datos
+    const tasks = await prisma.tarea.findMany({
+      where,
+      include: {
+        usuario: {
+          select: {
+            id_usuario: true,
+            nombre: true,
+            email: true
+          }
+        }
+      },
+      orderBy: [
+        { estado: 'asc' }, // pendientes primero
+        { createdAt: 'desc' } // más recientes primero
+      ]
     })
+
+    // Transformar datos para el frontend
+    const transformedTasks = tasks.map(task => ({
+      id: task.id_tarea.toString(),
+      title: task.titulo,
+      description: task.descripcion || '',
+      dueDate: task.fecha_limite?.toISOString().split('T')[0] || null,
+      status: task.estado,
+      userId: task.id_usuario.toString(),
+      createdAt: task.createdAt.toISOString(),
+      user: {
+        id: task.usuario.id_usuario.toString(),
+        name: task.usuario.nombre,
+        email: task.usuario.email
+      }
+    }))
 
     return NextResponse.json({
       success: true,
       data: {
-        tasks: userTasks,
-        total: userTasks.length,
-        filters: { userId, status, priority }
+        tasks: transformedTasks,
+        total: transformedTasks.length,
+        filters: {
+          status,
+          userId: auth.userId.toString()
+        }
       }
-    }, { status: 200 })
+    })
 
   } catch (error) {
     console.error('Error al obtener tareas:', error)
+    return NextResponse.json(
+      { error: 'Error interno del servidor' },
+      { status: 500 }
+    )
+  }
+}
+
+/**
+ * POST /api/tasks
+ * Crea una nueva tarea
+ */
+export async function POST(request: NextRequest) {
+  try {
+    // Verificar autenticación
+    const auth = verifyToken(request)
+    if (!auth) {
+      return NextResponse.json(
+        { error: 'Token de autenticación requerido' },
+        { status: 401 }
+      )
+    }
+
+    // Parsear el cuerpo de la petición
+    const body = await request.json()
+
+    // Validar los datos
+    const validation = validateTaskData(body)
+    if (!validation.isValid) {
+      return NextResponse.json({
+        success: false,
+        error: 'Datos de tarea inválidos',
+        details: validation.errors
+      }, { status: 400 })
+    }
+
+    // Crear la nueva tarea en la base de datos
+    const newTask = await prisma.tarea.create({
+      data: {
+        titulo: body.title.trim(),
+        descripcion: body.description?.trim() || null,
+        fecha_limite: body.dueDate ? new Date(body.dueDate) : null,
+        estado: body.status || 'pending',
+        id_usuario: auth.userId
+      },
+      include: {
+        usuario: {
+          select: {
+            id_usuario: true,
+            nombre: true,
+            email: true
+          }
+        }
+      }
+    })
+
+    // Transformar datos para el frontend
+    const transformedTask = {
+      id: newTask.id_tarea.toString(),
+      title: newTask.titulo,
+      description: newTask.descripcion || '',
+      dueDate: newTask.fecha_limite?.toISOString().split('T')[0] || null,
+      status: newTask.estado,
+      userId: newTask.id_usuario.toString(),
+      createdAt: newTask.createdAt.toISOString(),
+      user: {
+        id: newTask.usuario.id_usuario.toString(),
+        name: newTask.usuario.nombre,
+        email: newTask.usuario.email
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        task: transformedTask,
+        message: 'Tarea creada exitosamente'
+      }
+    }, { status: 201 })
+
+  } catch (error) {
+    console.error('Error al crear tarea:', error)
+    
+    if (error instanceof SyntaxError) {
+      return NextResponse.json({
+        success: false,
+        error: 'Formato de datos inválido. Se esperaba JSON válido.'
+      }, { status: 400 })
+    }
+
     return NextResponse.json({
       success: false,
-      error: 'Error interno del servidor al obtener las tareas'
+      error: 'Error interno del servidor al crear la tarea'
     }, { status: 500 })
   }
 }
@@ -170,6 +267,15 @@ export async function GET(request: NextRequest) {
  */
 export async function PUT(request: NextRequest) {
   try {
+    // Verificar autenticación
+    const auth = verifyToken(request)
+    if (!auth) {
+      return NextResponse.json(
+        { error: 'Token de autenticación requerido' },
+        { status: 401 }
+      )
+    }
+
     const body = await request.json()
     
     // Validar que se proporcione el ID de la tarea
@@ -178,15 +284,6 @@ export async function PUT(request: NextRequest) {
         success: false,
         error: 'ID de tarea es requerido'
       }, { status: 400 })
-    }
-
-    // Buscar la tarea existente
-    const taskIndex = mockTasks.findIndex(task => task.id === body.id)
-    if (taskIndex === -1) {
-      return NextResponse.json({
-        success: false,
-        error: 'Tarea no encontrada'
-      }, { status: 404 })
     }
 
     // Validar los datos de actualización
@@ -199,25 +296,63 @@ export async function PUT(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Actualizar la tarea
-    const updatedTask: Task = {
-      ...mockTasks[taskIndex],
-      title: body.title,
-      description: body.description || '',
-      dueDate: body.dueDate || null,
-      priority: body.priority,
-      status: body.status || mockTasks[taskIndex].status
+    // Verificar que la tarea existe y pertenece al usuario
+    const existingTask = await prisma.tarea.findFirst({
+      where: {
+        id_tarea: parseInt(body.id),
+        id_usuario: auth.userId
+      }
+    })
+
+    if (!existingTask) {
+      return NextResponse.json({
+        success: false,
+        error: 'Tarea no encontrada o no tienes permisos para modificarla'
+      }, { status: 404 })
     }
 
-    mockTasks[taskIndex] = updatedTask
+    // Actualizar la tarea
+    const updatedTask = await prisma.tarea.update({
+      where: {
+        id_tarea: parseInt(body.id)
+      },
+      data: {
+        titulo: body.title.trim(),
+        descripcion: body.description?.trim() || null,
+        fecha_limite: body.dueDate ? new Date(body.dueDate) : null,
+        estado: body.status || existingTask.estado
+      },
+      include: {
+        usuario: {
+          select: {
+            id_usuario: true,
+            nombre: true,
+            email: true
+          }
+        }
+      }
+    })
 
-    // Simular delay de red
-    await new Promise(resolve => setTimeout(resolve, 100))
+    // Transformar datos para el frontend
+    const transformedTask = {
+      id: updatedTask.id_tarea.toString(),
+      title: updatedTask.titulo,
+      description: updatedTask.descripcion || '',
+      dueDate: updatedTask.fecha_limite?.toISOString().split('T')[0] || null,
+      status: updatedTask.estado,
+      userId: updatedTask.id_usuario.toString(),
+      createdAt: updatedTask.createdAt.toISOString(),
+      user: {
+        id: updatedTask.usuario.id_usuario.toString(),
+        name: updatedTask.usuario.nombre,
+        email: updatedTask.usuario.email
+      }
+    }
 
     return NextResponse.json({
       success: true,
       data: {
-        task: updatedTask,
+        task: transformedTask,
         message: 'Tarea actualizada exitosamente'
       }
     })
@@ -244,6 +379,15 @@ export async function PUT(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
+    // Verificar autenticación
+    const auth = verifyToken(request)
+    if (!auth) {
+      return NextResponse.json(
+        { error: 'Token de autenticación requerido' },
+        { status: 401 }
+      )
+    }
+
     const { searchParams } = new URL(request.url)
     const taskId = searchParams.get('id')
     
@@ -254,25 +398,57 @@ export async function DELETE(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Buscar la tarea
-    const taskIndex = mockTasks.findIndex(task => task.id === taskId)
-    if (taskIndex === -1) {
+    // Verificar que la tarea existe y pertenece al usuario
+    const existingTask = await prisma.tarea.findFirst({
+      where: {
+        id_tarea: parseInt(taskId),
+        id_usuario: auth.userId
+      },
+      include: {
+        usuario: {
+          select: {
+            id_usuario: true,
+            nombre: true,
+            email: true
+          }
+        }
+      }
+    })
+
+    if (!existingTask) {
       return NextResponse.json({
         success: false,
-        error: 'Tarea no encontrada'
+        error: 'Tarea no encontrada o no tienes permisos para eliminarla'
       }, { status: 404 })
     }
 
     // Eliminar la tarea
-    const deletedTask = mockTasks.splice(taskIndex, 1)[0]
+    await prisma.tarea.delete({
+      where: {
+        id_tarea: parseInt(taskId)
+      }
+    })
 
-    // Simular delay de red
-    await new Promise(resolve => setTimeout(resolve, 100))
+    // Transformar datos para el frontend
+    const transformedTask = {
+      id: existingTask.id_tarea.toString(),
+      title: existingTask.titulo,
+      description: existingTask.descripcion || '',
+      dueDate: existingTask.fecha_limite?.toISOString().split('T')[0] || null,
+      status: existingTask.estado,
+      userId: existingTask.id_usuario.toString(),
+      createdAt: existingTask.createdAt.toISOString(),
+      user: {
+        id: existingTask.usuario.id_usuario.toString(),
+        name: existingTask.usuario.nombre,
+        email: existingTask.usuario.email
+      }
+    }
 
     return NextResponse.json({
       success: true,
       data: {
-        task: deletedTask,
+        task: transformedTask,
         message: 'Tarea eliminada exitosamente'
       }
     })
@@ -283,68 +459,6 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({
       success: false,
       error: 'Error interno del servidor al eliminar la tarea'
-    }, { status: 500 })
-  }
-}
-
-/**
- * POST /api/tasks
- * Crea una nueva tarea
- */
-export async function POST(request: NextRequest) {
-  try {
-    // Parsear el cuerpo de la petición
-    const body = await request.json()
-
-    // Validar los datos
-    const validation = validateTaskData(body)
-    if (!validation.isValid) {
-      return NextResponse.json({
-        success: false,
-        error: 'Datos de tarea inválidos',
-        details: validation.errors
-      }, { status: 400 })
-    }
-
-    // Crear la nueva tarea
-    const newTask: Task = {
-      id: generateTaskId(),
-      title: body.title.trim(),
-      description: body.description?.trim() || undefined,
-      dueDate: body.dueDate || undefined,
-      priority: body.priority,
-      status: body.status || TaskStatus.PENDING,
-      userId: body.userId
-    }
-
-    // Agregar a la base de datos mock
-    mockTasks.push(newTask)
-
-    // Simular delay de red (opcional)
-    await new Promise(resolve => setTimeout(resolve, 100))
-
-    return NextResponse.json({
-      success: true,
-      data: {
-        task: newTask,
-        message: 'Tarea creada exitosamente'
-      }
-    }, { status: 201 })
-
-  } catch (error) {
-    console.error('Error al crear tarea:', error)
-    
-    // Manejar errores de parsing JSON
-    if (error instanceof SyntaxError) {
-      return NextResponse.json({
-        success: false,
-        error: 'Formato de datos inválido. Se esperaba JSON válido.'
-      }, { status: 400 })
-    }
-
-    return NextResponse.json({
-      success: false,
-      error: 'Error interno del servidor al crear la tarea'
     }, { status: 500 })
   }
 }

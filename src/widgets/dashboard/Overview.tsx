@@ -39,17 +39,27 @@ export default function Overview() {
   const totalTasks = tasks.length
   const completedTasks = tasks.filter((task: Task) => task.status === 'done').length
   const pendingTasks = totalTasks - completedTasks
-  const highPriorityTasks = tasks.filter((task: Task) => task.priority === 'high').length
   
   // Calcular porcentaje de completitud
   const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
 
-  // Tareas por prioridad
-  const tasksByPriority = {
-    high: tasks.filter((task: Task) => task.priority === 'high').length,
-    medium: tasks.filter((task: Task) => task.priority === 'medium').length,
-    low: tasks.filter((task: Task) => task.priority === 'low').length,
+  // Tareas por estado (datos reales)
+  const tasksByStatus = {
+    done: tasks.filter((task: Task) => task.status === 'done').length,
+    pending: tasks.filter((task: Task) => task.status === 'pending').length,
   }
+
+  // Tareas creadas hoy (usando createdAt)
+  const createdToday = tasks.filter((task: Task) => {
+    if (!task.createdAt) return false
+    const created = new Date(task.createdAt)
+    const today = new Date()
+    return (
+      created.getFullYear() === today.getFullYear() &&
+      created.getMonth() === today.getMonth() &&
+      created.getDate() === today.getDate()
+    )
+  }).length
 
   // Tareas con fecha de vencimiento próxima (próximos 7 días)
   const upcomingTasks = tasks.filter((task: Task) => {
@@ -124,30 +134,23 @@ export default function Overview() {
 
       {/* Estadísticas Detalladas */}
       <div className="grid md:grid-cols-2 gap-6">
-        {/* Tareas por Prioridad */}
+        {/* Tareas por Estado */}
         <div className="bg-gray-50 rounded-lg p-4">
-          <h3 className="font-semibold text-gray-800 mb-3">🎯 Por Prioridad</h3>
+          <h3 className="font-semibold text-gray-800 mb-3">📌 Por Estado</h3>
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                <span className="text-sm text-gray-600">Alta</span>
+                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                <span className="text-sm text-gray-600">Completadas</span>
               </div>
-              <span className="font-medium text-gray-800">{tasksByPriority.high}</span>
+              <span className="font-medium text-gray-800">{tasksByStatus.done}</span>
             </div>
             <div className="flex justify-between items-center">
               <div className="flex items-center space-x-2">
                 <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                <span className="text-sm text-gray-600">Media</span>
+                <span className="text-sm text-gray-600">Pendientes</span>
               </div>
-              <span className="font-medium text-gray-800">{tasksByPriority.medium}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                <span className="text-sm text-gray-600">Baja</span>
-              </div>
-              <span className="font-medium text-gray-800">{tasksByPriority.low}</span>
+              <span className="font-medium text-gray-800">{tasksByStatus.pending}</span>
             </div>
           </div>
         </div>
@@ -176,11 +179,11 @@ export default function Overview() {
             </div>
             <div className="flex justify-between items-center">
               <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                <span className="text-sm text-gray-600">Alta Prioridad</span>
+                <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                <span className="text-sm text-gray-600">Creadas Hoy</span>
               </div>
-              <span className={`font-medium ${highPriorityTasks > 0 ? 'text-orange-600' : 'text-gray-800'}`}>
-                {highPriorityTasks}
+              <span className={`font-medium ${createdToday > 0 ? 'text-blue-600' : 'text-gray-800'}`}>
+                {createdToday}
               </span>
             </div>
           </div>

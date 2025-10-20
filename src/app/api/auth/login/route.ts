@@ -1,24 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { sign } from 'jsonwebtoken'
-
-// Mock database - en producción esto sería una base de datos real
-// Para el mock, usamos usuarios predefinidos
-const mockUsers = [
-  {
-    id: '1',
-    name: 'Usuario Demo',
-    email: 'demo@cleantask.com',
-    password: 'DemoPass123', // En producción esto estaría hasheado
-    role: 'user' as const
-  },
-  {
-    id: '2',
-    name: 'Admin Demo',
-    email: 'admin@cleantask.com',
-    password: 'AdminPass123', // En producción esto estaría hasheado
-    role: 'admin' as const
-  }
-]
+import { prisma } from '@/lib/prisma'
+import bcrypt from 'bcryptjs'
 
 // Secret para JWT - en producción esto vendría de variables de entorno
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
@@ -44,8 +27,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Buscar usuario en mock database
-    const user = mockUsers.find(u => u.email === body.email)
+    // Buscar usuario en la base de datos
+    const user = await prisma.usuario.findUnique({
+      where: { email: body.email },
+      select: {
+        id_usuario: true,
+        nombre: true,
+        email: true,
+        contraseña: true,
+        rol: true
+      }
+    })
     
     if (!user) {
       return NextResponse.json(
@@ -54,8 +46,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verificar contraseña (en producción usaríamos bcrypt)
-    if (user.password !== body.password) {
+    // Verificar contraseña con bcrypt
+    const isPasswordValid = await bcrypt.compare(body.password, user.contraseña)
+    
+    if (!isPasswordValid) {
       return NextResponse.json(
         { error: 'Credenciales inválidas' },
         { status: 401 }
@@ -65,9 +59,9 @@ export async function POST(request: NextRequest) {
     // Generar JWT token
     const token = sign(
       { 
-        userId: user.id,
+        userId: user.id_usuario,
         email: user.email,
-        role: user.role
+        role: user.rol
       },
       JWT_SECRET,
       { expiresIn: '24h' }
@@ -78,10 +72,10 @@ export async function POST(request: NextRequest) {
       message: 'Login exitoso',
       token,
       user: {
-        id: user.id,
-        name: user.name,
+        id: user.id_usuario,
+        name: user.nombre,
         email: user.email,
-        role: user.role
+        role: user.rol
       }
     })
 

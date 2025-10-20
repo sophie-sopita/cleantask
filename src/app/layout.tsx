@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Navigation from "@/widgets/header/Navigation";
+import { AuthProvider } from "@/shared/hooks/useAuth";
 
 export const metadata: Metadata = {
   title: {
@@ -37,11 +38,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <body className="antialiased bg-gray-50">
-        <Navigation />
-        <main>
-          {children}
-        </main>
+      <body suppressHydrationWarning className="antialiased min-h-screen bg-gray-50 sm:bg-gradient-to-br sm:from-indigo-50 sm:via-purple-50 sm:to-pink-50 md:bg-gradient-to-br md:from-blue-50 md:via-indigo-50 md:to-purple-50 lg:bg-gradient-to-br lg:from-slate-50 lg:via-gray-50 lg:to-slate-100">
+        <AuthProvider>
+          <Navigation />
+          <main className="relative z-10">
+            {children}
+          </main>
+        </AuthProvider>
         <footer className="bg-gray-800 text-white py-8 mt-12">
           <div className="max-w-6xl mx-auto px-4 text-center">
             <p className="text-gray-300">

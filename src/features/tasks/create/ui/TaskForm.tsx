@@ -1,8 +1,8 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Button, Input } from '@/shared/ui'
-import { CreateTaskPayload, TaskPriority } from '@/entities/task/model'
+import { Button, Input, Textarea } from '@/shared/ui'
+import { CreateTaskPayload } from '@/entities/task/model'
 import { useCreateTask } from '@/features/tasks/api'
 
 export interface TaskFormProps {
@@ -16,14 +16,12 @@ export interface TaskFormData {
   title: string
   description: string
   dueDate: string
-  priority: typeof TaskPriority[keyof typeof TaskPriority]
 }
 
 export interface TaskFormErrors {
   title?: string
   description?: string
   dueDate?: string
-  priority?: string
 }
 
 export function TaskForm({ onSubmit, onSuccess, onCancel, className = '' }: TaskFormProps) {
@@ -35,7 +33,6 @@ export function TaskForm({ onSubmit, onSuccess, onCancel, className = '' }: Task
     title: '',
     description: '',
     dueDate: '',
-    priority: TaskPriority.MEDIUM
   })
 
   // Estado de errores
@@ -118,8 +115,7 @@ export function TaskForm({ onSubmit, onSuccess, onCancel, className = '' }: Task
         title: formData.title.trim(),
         description: formData.description.trim() || undefined,
         dueDate: formData.dueDate || undefined,
-        priority: formData.priority,
-        status: 'pending',
+              status: 'pending',
         userId: 'current-user' // TODO: Obtener del contexto de autenticación
       }
 
@@ -156,8 +152,7 @@ export function TaskForm({ onSubmit, onSuccess, onCancel, className = '' }: Task
     setFormData({
       title: '',
       description: '',
-      dueDate: '',
-      priority: 'medium'
+      dueDate: ''
     })
     setErrors({})
   }
@@ -186,86 +181,65 @@ export function TaskForm({ onSubmit, onSuccess, onCancel, className = '' }: Task
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Campo Título */}
         <div>
-          <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
-            Título *
-          </label>
           <Input
             id="title"
             name="title"
             type="text"
+            label="Título *"
             value={formData.title}
             onChange={(e) => handleInputChange('title', e.target.value)}
             placeholder="Ingresa el título de la tarea"
             className={`w-full ${errors.title ? 'border-red-500' : ''}`}
             disabled={isLoading}
             required
+            leftIcon={
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            }
+            error={errors.title}
           />
-          {errors.title && (
-            <p className="mt-1 text-sm text-red-600">{errors.title}</p>
-          )}
         </div>
 
         {/* Campo Descripción */}
         <div>
-          <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-            Descripción
-          </label>
-          <textarea
+          <Textarea
             id="description"
+            label="Descripción"
             value={formData.description}
             onChange={(e) => handleInputChange('description', e.target.value)}
             placeholder="Describe los detalles de la tarea (opcional)"
-            className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical min-h-[100px] ${
-              errors.description 
-                ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
-                : 'border-gray-300'
-            } ${isLoading ? 'bg-gray-50 cursor-not-allowed' : ''}`}
             disabled={isLoading}
             maxLength={500}
+            showCharacterCount={true}
+            leftIcon={
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
+              </svg>
+            }
+            error={errors.description}
           />
-          {errors.description && (
-            <p className="mt-1 text-sm text-red-600">{errors.description}</p>
-          )}
-          <p className="mt-1 text-sm text-gray-500">
-            {formData.description.length}/500 caracteres
-          </p>
         </div>
 
         {/* Campo Fecha de Vencimiento */}
         <div>
-          <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 mb-2">
-            Fecha de Vencimiento
-          </label>
           <Input
             id="dueDate"
             type="date"
+            label="Fecha de Vencimiento"
             value={formData.dueDate}
             onChange={(e) => handleInputChange('dueDate', e.target.value)}
             error={errors.dueDate}
             disabled={isLoading}
             min={new Date().toISOString().split('T')[0]}
+            leftIcon={
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            }
           />
         </div>
 
-        {/* Campo Prioridad */}
-        <div>
-          <label htmlFor="priority" className="block text-sm font-medium text-gray-700 mb-2">
-            Prioridad
-          </label>
-          <select
-            id="priority"
-            value={formData.priority}
-            onChange={(e) => handleInputChange('priority', e.target.value as 'low' | 'medium' | 'high')}
-            className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-              isLoading ? 'bg-gray-50 cursor-not-allowed' : ''
-            }`}
-            disabled={isLoading}
-          >
-            <option value={TaskPriority.LOW}>Baja</option>
-            <option value={TaskPriority.MEDIUM}>Media</option>
-            <option value={TaskPriority.HIGH}>Alta</option>
-          </select>
-        </div>
 
         {/* Botones de Acción */}
         <div className="flex flex-col sm:flex-row gap-3 pt-4">

@@ -1,8 +1,8 @@
 'use client'
 
 import React from 'react'
-import { Button } from '@/shared/ui'
-import { Task, TaskStatus, TaskPriority } from '@/entities/task/model'
+import { Button, PriorityChip, OverdueChip, Input, Textarea } from '@/shared/ui'
+import { Task, TaskStatus, UpdateTaskPayload } from '@/entities/task/model'
 
 /**
  * Props del componente TaskList
@@ -12,6 +12,7 @@ export interface TaskListProps {
   onEdit: (task: Task) => void
   onDelete: (taskId: string) => void
   onToggleStatus: (taskId: string) => void
+  onUpdateTask: (id: string, payload: UpdateTaskPayload) => Promise<Task | null>
   isLoading?: boolean
   emptyMessage?: string
 }
@@ -24,6 +25,7 @@ interface TaskItemProps {
   onEdit: (task: Task) => void
   onDelete: (taskId: string) => void
   onToggleStatus: (taskId: string) => void
+  onUpdateTask: (id: string, payload: UpdateTaskPayload) => Promise<Task | null>
   isLoading?: boolean
 }
 
@@ -35,39 +37,19 @@ const TaskItem: React.FC<TaskItemProps> = ({
   onEdit,
   onDelete,
   onToggleStatus,
+  onUpdateTask,
   isLoading = false
 }) => {
-  /**
-   * Obtiene el color de la prioridad
-   */
-  const getPriorityColor = (priority: string): string => {
-    switch (priority) {
-      case TaskPriority.HIGH:
-        return 'bg-red-100 text-red-800 border-red-200'
-      case TaskPriority.MEDIUM:
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-      case TaskPriority.LOW:
-        return 'bg-green-100 text-green-800 border-green-200'
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200'
-    }
-  }
+  const [expanded, setExpanded] = React.useState(false)
+  const [isEditing, setIsEditing] = React.useState(false)
+  const [formData, setFormData] = React.useState<{ title: string; description: string; dueDate: string }>({
+    title: task.title,
+    description: task.description || '',
+    dueDate: task.dueDate ? task.dueDate.split('T')[0] : ''
+  })
 
-  /**
-   * Obtiene el texto de la prioridad
-   */
-  const getPriorityText = (priority: string): string => {
-    switch (priority) {
-      case TaskPriority.HIGH:
-        return 'Alta'
-      case TaskPriority.MEDIUM:
-        return 'Media'
-      case TaskPriority.LOW:
-        return 'Baja'
-      default:
-        return 'Sin definir'
-    }
-  }
+
+
 
   /**
    * Formatea la fecha de vencimiento
@@ -104,6 +86,19 @@ const TaskItem: React.FC<TaskItemProps> = ({
   const isDone = task.status === TaskStatus.DONE
   const overdue = isOverdue(task.dueDate)
 
+  const handleSaveEdit = async () => {
+    const payload: UpdateTaskPayload = {
+      title: formData.title.trim(),
+      description: formData.description.trim() || undefined,
+      dueDate: formData.dueDate || undefined
+    }
+    const result = await onUpdateTask(task.id, payload)
+    if (result) {
+      setIsEditing(false)
+      setExpanded(true)
+    }
+  }
+
   return (
     <div className={`bg-white rounded-lg border-2 p-4 transition-all duration-200 hover:shadow-md ${
       isDone ? 'border-green-200 bg-green-50' : overdue ? 'border-red-200 bg-red-50' : 'border-gray-200'
@@ -129,9 +124,13 @@ const TaskItem: React.FC<TaskItemProps> = ({
               )}
             </button>
             
-            <h3 className={`text-lg font-semibold truncate ${
-              isDone ? 'line-through text-gray-500' : 'text-gray-900'
-            }`}>
+            <h3
+              className={`text-lg font-semibold truncate ${
+                isDone ? 'line-through text-gray-500' : 'text-gray-900'
+              } cursor-pointer`}
+              onClick={() => setExpanded(prev => !prev)}
+              title="Ver detalles"
+            >
               {task.title}
             </h3>
           </div>
@@ -145,10 +144,29 @@ const TaskItem: React.FC<TaskItemProps> = ({
 
           {/* Metadatos */}
           <div className="flex flex-wrap items-center gap-2 mb-3">
-            {/* Prioridad */}
-            <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getPriorityColor(task.priority)}`}>
-              {getPriorityText(task.priority)}
-            </span>
+            {/* Prioridad derivada por vencimiento */}
+            {(() => {
+              const computeDerivedPriority = (due?: string, status?: string): 'high' | 'medium' | 'low' | 'none' => {
+                if (!due || status === TaskStatus.DONE) return 'none'
+                const today = new Date()
+                const dueDate = new Date(due)
+                // normalizamos al inicio del día para evitar sesgos por hora
+                const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+                const startOfDue = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate())
+                const diffTime = startOfDue.getTime() - startOfToday.getTime()
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+                if (diffDays <= 1) return 'high'
+                if (diffDays <= 5) return 'medium'
+                return 'low'
+              }
+              const effective = computeDerivedPriority(task.dueDate, task.status)
+              return <PriorityChip priority={effective} />
+            })()}
+
+            {/* Chip de vencida */}
+            {task.dueDate && (
+              <OverdueChip dueDate={task.dueDate} status={task.status} />
+            )}
 
             {/* Estado */}
             <span className={`px-2 py-1 text-xs font-medium rounded-full ${
@@ -170,6 +188,75 @@ const TaskItem: React.FC<TaskItemProps> = ({
               </span>
             )}
           </div>
+
+          {/* Detalle expandido */}
+          {expanded && (
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-3">
+              <div className="text-sm text-gray-700">
+                <strong>Descripción:</strong> {task.description || '—'}
+              </div>
+              <div className="text-sm text-gray-700">
+                <strong>Fecha de vencimiento:</strong> {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : '—'}
+              </div>
+              <div className="text-sm text-gray-700">
+                <strong>Creada:</strong> {new Date(task.createdAt).toLocaleString()}
+              </div>
+              <div className="flex items-center gap-2">
+                {(() => {
+                  const computeDerivedPriority = (due?: string, status?: string): 'high' | 'medium' | 'low' | 'none' => {
+                    if (!due || status === TaskStatus.DONE) return 'none'
+                    const today = new Date()
+                    const dueDate = new Date(due)
+                    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+                    const startOfDue = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate())
+                    const diffTime = startOfDue.getTime() - startOfToday.getTime()
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+                    if (diffDays <= 1) return 'high'
+                    if (diffDays <= 5) return 'medium'
+                    return 'low'
+                  }
+                  const effective = computeDerivedPriority(task.dueDate, task.status)
+                  return <PriorityChip priority={effective} />
+                })()}
+                {task.dueDate && (
+                  <OverdueChip dueDate={task.dueDate} status={task.status} />
+                )}
+              </div>
+
+
+              {isEditing && (
+                <form className="mt-3 space-y-3" onSubmit={(e) => { e.preventDefault(); handleSaveEdit() }}>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Título</label>
+                    <Input
+                      value={formData.title}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+                    <Textarea
+                      value={formData.description}
+                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                      rows={3}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de vencimiento</label>
+                    <Input
+                      type="date"
+                      value={formData.dueDate}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, dueDate: e.target.value }))}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button type="submit" variant="primary" size="sm" className="bg-blue-600 text-white">Guardar cambios</Button>
+                    <Button type="button" variant="secondary" size="sm" onClick={() => { setIsEditing(false); setExpanded(false) }}>Cancelar</Button>
+                  </div>
+                </form>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Botones de Acción */}
@@ -177,7 +264,28 @@ const TaskItem: React.FC<TaskItemProps> = ({
           <Button
             variant="secondary"
             size="sm"
-            onClick={() => onEdit(task)}
+            onClick={() => setExpanded(prev => !prev)}
+            disabled={isLoading}
+            className="text-gray-600 hover:text-gray-700"
+            title="Ver/ocultar detalles"
+          >
+            👁️
+          </Button>
+
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              setIsEditing(prev => {
+                const next = !prev
+                if (next) {
+                  setExpanded(true)
+                } else {
+                  setExpanded(false)
+                }
+                return next
+              })
+            }}
             disabled={isLoading}
             className="text-blue-600 hover:text-blue-700"
             title="Editar tarea"
@@ -210,11 +318,12 @@ export const TaskList: React.FC<TaskListProps> = ({
   onEdit,
   onDelete,
   onToggleStatus,
+  onUpdateTask,
   isLoading = false,
   emptyMessage = 'No hay tareas disponibles'
 }) => {
   /**
-   * Ordena las tareas por prioridad y estado
+   * Ordena las tareas por vencimiento y estado
    */
   const sortedTasks = [...tasks].sort((a, b) => {
     // Primero por estado (pendientes primero)
@@ -222,12 +331,10 @@ export const TaskList: React.FC<TaskListProps> = ({
       return a.status === TaskStatus.PENDING ? -1 : 1
     }
 
-    // Luego por prioridad
-    const priorityOrder = { high: 3, medium: 2, low: 1 }
-    const aPriority = priorityOrder[a.priority as keyof typeof priorityOrder] || 0
-    const bPriority = priorityOrder[b.priority as keyof typeof priorityOrder] || 0
-    
-    return bPriority - aPriority
+    // Luego por fecha de vencimiento (más próximas primero; las sin fecha al final)
+    const aDate = a.dueDate ? new Date(a.dueDate).getTime() : Infinity
+    const bDate = b.dueDate ? new Date(b.dueDate).getTime() : Infinity
+    return aDate - bDate
   })
 
   /**
@@ -306,6 +413,7 @@ export const TaskList: React.FC<TaskListProps> = ({
               onEdit={onEdit}
               onDelete={onDelete}
               onToggleStatus={onToggleStatus}
+              onUpdateTask={onUpdateTask}
               isLoading={isLoading}
             />
           ))}

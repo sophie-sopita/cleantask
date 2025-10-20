@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Task, CreateTaskPayload, UpdateTaskPayload, TaskStatus, TaskPriority } from '@/entities/task/model'
+import { useAuth } from '@/shared/hooks/useAuth'
 
 /**
  * Tipos para el hook useTasks
@@ -64,38 +65,31 @@ export interface CreateTaskApiResponse {
  */
 export function useTasks(options: UseTasksOptions = {}): UseTasksReturn {
   const {
-    userId = 'user-1', // Mock user ID por defecto
+    userId: providedUserId,
     status,
     priority,
     autoFetch = true
   } = options
 
-  // Estado del hook
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
+  const { token, user } = useAuth()
+  const userId = providedUserId || user?.id
 
-  /**
-   * Construye la URL de la API con parámetros de consulta
-   */
+  // BroadcastChannel para sincronización en tiempo real entre pestañas
+  const channelRef = useRef<BroadcastChannel | null>(null)
+
   const buildApiUrl = useCallback((baseUrl: string, params: Record<string, string | undefined>) => {
     const url = new URL(baseUrl, window.location.origin)
-    
     Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined) {
-        url.searchParams.append(key, value)
-      }
+      if (value !== undefined) url.searchParams.append(key, value)
     })
-    
     return url.toString()
   }, [])
 
-  /**
-   * Maneja errores de la API de forma consistente
-   */
   const handleApiError = useCallback((error: unknown, defaultMessage: string) => {
     console.error('API Error:', error)
-    
     if (error instanceof Error) {
       setError(error.message)
     } else if (typeof error === 'string') {
@@ -105,10 +99,11 @@ export function useTasks(options: UseTasksOptions = {}): UseTasksReturn {
     }
   }, [])
 
-  /**
-   * Obtiene las tareas desde la API
-   */
   const fetchTasks = useCallback(async (): Promise<void> => {
+    // No llamar a la API hasta que haya autenticación lista
+    if (!userId || !token) {
+      return
+    }
     try {
       setLoading(true)
       setError(null)
@@ -123,6 +118,7 @@ export function useTasks(options: UseTasksOptions = {}): UseTasksReturn {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
         },
       })
 
@@ -136,11 +132,7 @@ export function useTasks(options: UseTasksOptions = {}): UseTasksReturn {
         throw new Error(result.error || 'Error desconocido al obtener las tareas')
       }
 
-      if (result.data) {
-        setTasks(result.data.tasks)
-      } else {
-        setTasks([])
-      }
+      setTasks(result.data ? result.data.tasks : [])
 
     } catch (error) {
       handleApiError(error, 'Error al cargar las tareas')
@@ -148,26 +140,17 @@ export function useTasks(options: UseTasksOptions = {}): UseTasksReturn {
     } finally {
       setLoading(false)
     }
-  }, [userId, status, priority, buildApiUrl, handleApiError])
+  }, [userId, status, priority, buildApiUrl, handleApiError, token])
 
-  /**
-   * Crea una nueva tarea
-   */
   const createTask = useCallback(async (taskData: CreateTaskPayload): Promise<Task | null> => {
     try {
       setLoading(true)
       setError(null)
 
-      // Validación básica en el cliente
       if (!taskData.title?.trim()) {
         throw new Error('El título de la tarea es requerido')
       }
 
-      if (!taskData.priority) {
-        throw new Error('La prioridad de la tarea es requerida')
-      }
-
-      // Preparar datos para envío
       const payload = {
         ...taskData,
         userId,
@@ -179,6 +162,7 @@ export function useTasks(options: UseTasksOptions = {}): UseTasksReturn {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
         },
         body: JSON.stringify(payload),
       })
@@ -196,8 +180,9 @@ export function useTasks(options: UseTasksOptions = {}): UseTasksReturn {
       }
 
       if (result.data) {
-        // Actualizar la lista de tareas localmente
         setTasks(prevTasks => [result.data!.task, ...prevTasks])
+        // Notificar a otras pestañas
+        channelRef.current?.postMessage({ type: 'TASKS_CHANGED', userId })
         return result.data.task
       }
 
@@ -209,39 +194,26 @@ export function useTasks(options: UseTasksOptions = {}): UseTasksReturn {
     } finally {
       setLoading(false)
     }
-  }, [userId, handleApiError])
+  }, [userId, handleApiError, token])
 
-  /**
-   * Refresca las tareas (alias de fetchTasks para mayor claridad)
-   */
   const refreshTasks = useCallback(async (): Promise<void> => {
     await fetchTasks()
   }, [fetchTasks])
 
-  /**
-   * Limpia el error actual
-   */
   const clearError = useCallback((): void => {
     setError(null)
   }, [])
 
-  /**
-   * Obtiene una tarea por su ID
-   */
   const getTaskById = useCallback((id: string): Task | undefined => {
     return tasks.find(task => task.id === id)
   }, [tasks])
 
-  /**
-   * Actualiza una tarea existente
-   */
   const updateTask = useCallback(async (taskId: string, taskData: UpdateTaskPayload): Promise<Task | null> => {
     setLoading(true)
     setError(null)
-
     try {
       const payload = {
-        id: taskId, // Include the task ID in the request body
+        id: taskId,
         ...taskData,
         title: taskData.title?.trim(),
         description: taskData.description?.trim() || undefined
@@ -251,6 +223,7 @@ export function useTasks(options: UseTasksOptions = {}): UseTasksReturn {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
         },
         body: JSON.stringify(payload),
       })
@@ -265,13 +238,10 @@ export function useTasks(options: UseTasksOptions = {}): UseTasksReturn {
         throw new Error(result.error || 'Error al actualizar la tarea')
       }
 
-      // Actualizar la tarea en el estado local
       if (result.data?.task) {
-        setTasks(prevTasks => 
-          prevTasks.map(task => 
-            task.id === taskId ? result.data!.task : task
-          )
-        )
+        setTasks(prevTasks => prevTasks.map(task => task.id === taskId ? result.data!.task : task))
+        // Notificar a otras pestañas
+        channelRef.current?.postMessage({ type: 'TASKS_CHANGED', userId })
       }
 
       return result.data?.task || null
@@ -283,11 +253,8 @@ export function useTasks(options: UseTasksOptions = {}): UseTasksReturn {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [token, userId])
 
-  /**
-   * Elimina una tarea
-   */
   const deleteTask = useCallback(async (taskId: string): Promise<boolean> => {
     setLoading(true)
     setError(null)
@@ -295,6 +262,9 @@ export function useTasks(options: UseTasksOptions = {}): UseTasksReturn {
     try {
       const response = await fetch(`/api/tasks?id=${taskId}`, {
         method: 'DELETE',
+        headers: {
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
       })
 
       if (!response.ok) {
@@ -307,8 +277,9 @@ export function useTasks(options: UseTasksOptions = {}): UseTasksReturn {
         throw new Error(result.error || 'Error al eliminar la tarea')
       }
 
-      // Remover la tarea del estado local
       setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId))
+      // Notificar a otras pestañas
+      channelRef.current?.postMessage({ type: 'TASKS_CHANGED', userId })
 
       return true
 
@@ -319,39 +290,52 @@ export function useTasks(options: UseTasksOptions = {}): UseTasksReturn {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [token, userId])
 
   // Estadísticas calculadas
   const totalTasks = tasks.length
   const pendingTasks = tasks.filter(task => task.status === TaskStatus.PENDING).length
   const completedTasks = tasks.filter(task => task.status === TaskStatus.DONE).length
 
-  // Efecto para cargar tareas automáticamente
+  // Inicializar canal y reaccionar a cambios desde otras pestañas
   useEffect(() => {
-    if (autoFetch) {
+    if (typeof BroadcastChannel === 'undefined') return
+    const channel = new BroadcastChannel('tasks-sync')
+    channelRef.current = channel
+
+    const onMessage = (event: MessageEvent) => {
+      const msg = event.data
+      if (msg?.type === 'TASKS_CHANGED' && msg.userId === userId) {
+        fetchTasks()
+      }
+    }
+
+    channel.addEventListener('message', onMessage as any)
+    return () => {
+      channel.removeEventListener('message', onMessage as any)
+      channel.close()
+    }
+  }, [userId, fetchTasks])
+
+  // Efecto para cargar tareas automáticamente sólo cuando haya token y usuario
+  useEffect(() => {
+    if (autoFetch && userId && token) {
       fetchTasks()
     }
-  }, [fetchTasks, autoFetch])
+  }, [fetchTasks, autoFetch, userId, token])
 
   return {
-    // Estado
     tasks,
     loading,
     error,
-    
-    // Estadísticas
     totalTasks,
     pendingTasks,
     completedTasks,
-    
-    // Acciones CRUD
     fetchTasks,
     createTask,
     updateTask,
     deleteTask,
     refreshTasks,
-    
-    // Utilidades
     clearError,
     getTaskById,
   }
@@ -363,6 +347,9 @@ export function useTasks(options: UseTasksOptions = {}): UseTasksReturn {
 export function useCreateTask() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  
+  // Hook de autenticación
+  const { token, user } = useAuth()
 
   const createTask = useCallback(async (taskData: CreateTaskPayload): Promise<Task | null> => {
     try {
@@ -371,7 +358,7 @@ export function useCreateTask() {
 
       const payload = {
         ...taskData,
-        userId: 'user-1', // Mock user ID
+        userId: user?.id || 'user-1', // Use authenticated user ID or fallback
         title: taskData.title.trim(),
         description: taskData.description?.trim() || undefined
       }
@@ -380,6 +367,7 @@ export function useCreateTask() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
         },
         body: JSON.stringify(payload),
       })
@@ -403,7 +391,7 @@ export function useCreateTask() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [token, user])
 
   const clearError = useCallback(() => setError(null), [])
 

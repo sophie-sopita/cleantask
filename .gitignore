@@ -112,3 +112,4 @@ temp/
 
 # Local development
 .local/
+/src/generated/prisma
